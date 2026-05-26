@@ -2,7 +2,7 @@
 # Avoids multi-stage cross-platform execution issues
 # Based on working v1.0.1-amd64 approach
 
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Update packages to fix CVE-2025-9230 (libssl3, libcrypto3)
 RUN apk update && \
@@ -57,5 +57,5 @@ CMD ["node", "src/server.js"]
 
 # Labels
 LABEL name="fast-mermaid-validator-mcp" \
-      version="1.0.32" \
+      version="1.1.0" \
       description="Fast Mermaid Validator MCP - LLM Integration Ready - CVE-2025-9230 Fixed"

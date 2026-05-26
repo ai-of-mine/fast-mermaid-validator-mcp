@@ -106,8 +106,8 @@ class Server {
       this.setupSwaggerDocs();
     }
 
-    // 404 handler
-    this.app.use('*', (req, res) => {
+    // 404 handler (Express 5: middleware without a path matches all)
+    this.app.use((req, res) => {
       res.status(404).json({
         error: 'Not Found',
         message: `Route ${req.method} ${req.originalUrl} not found`,

@@ -31,7 +31,7 @@ class ValidationInstructions {
 
     // Add detected issues if any
     if (commonIssues.length > 0) {
-      syntaxText += `\n\nDETECTED ISSUES IN YOUR DIAGRAM:\n`;
+      syntaxText += '\n\nDETECTED ISSUES IN YOUR DIAGRAM:\n';
       commonIssues.forEach(issue => {
         syntaxText += `- ${issue.description}: ${issue.fix}\n`;
       });
@@ -45,41 +45,41 @@ class ValidationInstructions {
    */
   getGeneralInstructions() {
     return {
-      title: "Mermaid Diagram Syntax Guidelines",
+      title: 'Mermaid Diagram Syntax Guidelines',
       rules: [
         {
-          category: "Node Identifiers",
+          category: 'Node Identifiers',
           rules: [
-            "MUST start with a letter (A-Z, a-z)",
-            "CAN contain letters, numbers, and underscores only",
-            "CANNOT contain spaces, hyphens, periods, or special characters",
-            "ARE case-sensitive (A and a are different)",
-            "Examples: 'A', 'Node1', 'Process_2', 'START'"
+            'MUST start with a letter (A-Z, a-z)',
+            'CAN contain letters, numbers, and underscores only',
+            'CANNOT contain spaces, hyphens, periods, or special characters',
+            'ARE case-sensitive (A and a are different)',
+            'Examples: \'A\', \'Node1\', \'Process_2\', \'START\''
           ],
-          invalid: ["'1Node'", "'Node-1'", "'Node.1'", "'Node 1'", "'A-B'"]
+          invalid: ['\'1Node\'', '\'Node-1\'', '\'Node.1\'', '\'Node 1\'', '\'A-B\'']
         },
         {
-          category: "Text Content",
+          category: 'Text Content',
           rules: [
-            "ALWAYS use quotes for text with spaces or special characters",
-            "USE [\"text\"] format for complex strings",
-            "ESCAPE quotes inside text with backslash",
-            "USE <br/> for line breaks, never \\n",
-            "SUPPORT HTML entities: &lt;, &gt;, &amp;"
+            'ALWAYS use quotes for text with spaces or special characters',
+            'USE ["text"] format for complex strings',
+            'ESCAPE quotes inside text with backslash',
+            'USE <br/> for line breaks, never \\n',
+            'SUPPORT HTML entities: &lt;, &gt;, &amp;'
           ],
           examples: [
-            "A[\"Process with $100 value\"]",
-            "B[\"Line 1<br/>Line 2<br/>Line 3\"]",
-            "C[\"Text with \\\"quotes\\\"\"]"
+            'A["Process with $100 value"]',
+            'B["Line 1<br/>Line 2<br/>Line 3"]',
+            'C["Text with \\"quotes\\""]'
           ]
         },
         {
-          category: "Connections",
+          category: 'Connections',
           rules: [
-            "Use standard arrow syntax for connections",
-            "Label decision branches clearly",
-            "Ensure all nodes are properly connected",
-            "No orphaned or unreachable nodes"
+            'Use standard arrow syntax for connections',
+            'Label decision branches clearly',
+            'Ensure all nodes are properly connected',
+            'No orphaned or unreachable nodes'
           ]
         }
       ]
@@ -92,24 +92,24 @@ class ValidationInstructions {
   getDiagramTypeInstructions() {
     return {
       flowchart: {
-        title: "Flowchart Syntax",
-        syntax: "flowchart TD",
+        title: 'Flowchart Syntax',
+        syntax: 'flowchart TD',
         elements: {
           shapes: {
-            "[Rectangle]": "Default process step",
-            "([Stadium])": "Start/End points",
-            "{Diamond}": "Decision points",
-            "[(Database)]": "Data storage",
-            "[[Subroutine]]": "Function/method calls",
-            "((Circle))": "Connectors",
-            "[/Parallelogram/]": "Input/Output operations"
+            '[Rectangle]': 'Default process step',
+            '([Stadium])': 'Start/End points',
+            '{Diamond}': 'Decision points',
+            '[(Database)]': 'Data storage',
+            '[[Subroutine]]': 'Function/method calls',
+            '((Circle))': 'Connectors',
+            '[/Parallelogram/]': 'Input/Output operations'
           },
           arrows: {
-            "-->": "Standard flow",
-            "-.->": "Dotted flow",
-            "==>": "Thick flow",
-            "--x": "Flow with cross",
-            "-->|text|": "Labeled flow"
+            '-->': 'Standard flow',
+            '-.->': 'Dotted flow',
+            '==>': 'Thick flow',
+            '--x': 'Flow with cross',
+            '-->|text|': 'Labeled flow'
           }
         },
         example: `flowchart TD
@@ -122,79 +122,79 @@ class ValidationInstructions {
       },
 
       sequenceDiagram: {
-        title: "Sequence Diagram Syntax",
-        syntax: "sequenceDiagram",
+        title: 'Sequence Diagram Syntax',
+        syntax: 'sequenceDiagram',
         elements: {
-          participants: "Define with: participant A as Actor",
+          participants: 'Define with: participant A as Actor',
           arrows: {
-            "->>": "Synchronous message",
-            "-->>": "Return/Response",
-            "-x": "Lost message",
-            "-)": "Async message",
-            "->>+": "Activate lifeline",
-            "->>-": "Deactivate lifeline"
+            '->>': 'Synchronous message',
+            '-->>': 'Return/Response',
+            '-x': 'Lost message',
+            '-)': 'Async message',
+            '->>+': 'Activate lifeline',
+            '->>-': 'Deactivate lifeline'
           },
           features: [
-            "Note over A: Comment text",
-            "Note left of A: Left note",
-            "Note right of A: Right note",
-            "alt/else/end blocks for conditions",
-            "loop/end blocks for iterations"
+            'Note over A: Comment text',
+            'Note left of A: Left note',
+            'Note right of A: Right note',
+            'alt/else/end blocks for conditions',
+            'loop/end blocks for iterations'
           ]
         }
       },
 
       classDiagram: {
-        title: "Class Diagram Syntax",
-        syntax: "classDiagram",
+        title: 'Class Diagram Syntax',
+        syntax: 'classDiagram',
         elements: {
           visibility: {
-            "+": "Public",
-            "-": "Private",
-            "#": "Protected",
-            "~": "Package/Internal"
+            '+': 'Public',
+            '-': 'Private',
+            '#': 'Protected',
+            '~': 'Package/Internal'
           },
           relationships: {
-            "<|--": "Inheritance",
-            "*--": "Composition",
-            "o--": "Aggregation",
-            "-->": "Association",
-            "--": "Link (no arrow)",
-            "..>": "Dependency",
-            "..|>": "Realization"
+            '<|--': 'Inheritance',
+            '*--': 'Composition',
+            'o--': 'Aggregation',
+            '-->': 'Association',
+            '--': 'Link (no arrow)',
+            '..>': 'Dependency',
+            '..|>': 'Realization'
           },
-          methods: "method(param: type): returnType"
+          methods: 'method(param: type): returnType'
         }
       },
 
       erDiagram: {
-        title: "Entity Relationship Diagram Syntax",
-        syntax: "erDiagram",
+        title: 'Entity Relationship Diagram Syntax',
+        syntax: 'erDiagram',
         elements: {
           relationships: {
-            "||--||": "One to one",
-            "||--o{": "One to many",
-            "o{--o{": "Many to many",
-            "||--o|": "One to zero or one",
-            "}o--||": "Zero or more to one"
+            '||--||': 'One to one',
+            '||--o{': 'One to many',
+            'o{--o{': 'Many to many',
+            '||--o|': 'One to zero or one',
+            '}o--||': 'Zero or more to one'
           },
           attributes: {
-            "PK": "Primary Key",
-            "FK": "Foreign Key",
-            "UK": "Unique Key"
+            'PK': 'Primary Key',
+            'FK': 'Foreign Key',
+            'UK': 'Unique Key'
           },
-          types: "string, int, boolean, date, decimal, etc."
+          types: 'string, int, boolean, date, decimal, etc.'
         }
       },
 
       default: {
-        title: "General Mermaid Syntax",
+        title: 'General Mermaid Syntax',
         instructions: [
-          "Declare diagram type at the top",
-          "Use valid node identifiers (letters, numbers, underscores)",
-          "Quote text with spaces or special characters",
-          "Use proper arrow syntax for connections",
-          "Include meaningful labels and descriptions"
+          'Declare diagram type at the top',
+          'Use valid node identifiers (letters, numbers, underscores)',
+          'Quote text with spaces or special characters',
+          'Use proper arrow syntax for connections',
+          'Include meaningful labels and descriptions'
         ]
       }
     };
@@ -210,10 +210,10 @@ class ValidationInstructions {
     const invalidIds = content.match(/\b\d+\w*|\w*[-.\s]\w*/g);
     if (invalidIds) {
       commonIssues.push({
-        type: "invalid_node_ids",
-        description: "Node IDs contain invalid characters",
+        type: 'invalid_node_ids',
+        description: 'Node IDs contain invalid characters',
         examples: invalidIds.slice(0, 3),
-        fix: "Replace with valid identifiers (letters, numbers, underscores only)"
+        fix: 'Replace with valid identifiers (letters, numbers, underscores only)'
       });
     }
 
@@ -221,19 +221,19 @@ class ValidationInstructions {
     const unquotedSpecial = content.match(/\[[^"\]]*[(){}$%@#&*+\-.,;:!?\/\\][^"\]]*\]/g);
     if (unquotedSpecial) {
       commonIssues.push({
-        type: "unquoted_special_text",
-        description: "Text with special characters not properly quoted",
+        type: 'unquoted_special_text',
+        description: 'Text with special characters not properly quoted',
         examples: unquotedSpecial.slice(0, 3),
-        fix: "Wrap text in quotes: [\"text with special chars\"]"
+        fix: 'Wrap text in quotes: ["text with special chars"]'
       });
     }
 
     // Check for literal line breaks
     if (content.includes('\\n') || content.split('\n').length > content.split('<br/>').length + 5) {
       commonIssues.push({
-        type: "literal_line_breaks",
-        description: "Literal line breaks used instead of <br/>",
-        fix: "Replace \\n or literal breaks with <br/> tags"
+        type: 'literal_line_breaks',
+        description: 'Literal line breaks used instead of <br/>',
+        fix: 'Replace \\n or literal breaks with <br/> tags'
       });
     }
 
@@ -251,26 +251,26 @@ class ValidationInstructions {
       case 'flowchart':
       case 'graph':
         if (!content.includes('([') && !content.includes('{')) {
-          suggestions.push("Consider using different node shapes: ([Start]), {Decision}, [(Database)]");
+          suggestions.push('Consider using different node shapes: ([Start]), {Decision}, [(Database)]');
         }
         break;
 
       case 'sequenceDiagram':
         if (!content.includes('participant')) {
-          suggestions.push("Define participants: participant A as Actor");
+          suggestions.push('Define participants: participant A as Actor');
         }
         break;
 
       case 'erDiagram':
         if (!content.includes('PK') && !content.includes('FK')) {
-          suggestions.push("Add key constraints: column_name datatype PK/FK");
+          suggestions.push('Add key constraints: column_name datatype PK/FK');
         }
         break;
     }
 
     // General syntax fixes
     if (errors.some(e => e.message && e.message.includes('unexpected'))) {
-      suggestions.push("Check for syntax errors: invalid characters, missing quotes, or malformed connections");
+      suggestions.push('Check for syntax errors: invalid characters, missing quotes, or malformed connections');
     }
 
     return suggestions;
@@ -310,57 +310,57 @@ class ValidationInstructions {
   getSyntaxReference(diagramType) {
     const references = {
       flowchart: {
-        declaration: "flowchart TD (or LR, BT, RL)",
+        declaration: 'flowchart TD (or LR, BT, RL)',
         nodeShapes: {
-          "[text]": "Rectangle",
-          "([text])": "Stadium/Pill",
-          "{text}": "Rhombus/Diamond",
-          "[(text)]": "Database",
-          "[[text]]": "Subroutine",
-          "((text))": "Circle"
+          '[text]': 'Rectangle',
+          '([text])': 'Stadium/Pill',
+          '{text}': 'Rhombus/Diamond',
+          '[(text)]': 'Database',
+          '[[text]]': 'Subroutine',
+          '((text))': 'Circle'
         },
         arrows: {
-          "-->": "Standard arrow",
-          "-.->": "Dotted arrow",
-          "==>": "Thick arrow",
-          "-->|text|": "Labeled arrow"
+          '-->': 'Standard arrow',
+          '-.->': 'Dotted arrow',
+          '==>': 'Thick arrow',
+          '-->|text|': 'Labeled arrow'
         }
       },
       sequenceDiagram: {
-        declaration: "sequenceDiagram",
-        participants: "participant A as Actor",
+        declaration: 'sequenceDiagram',
+        participants: 'participant A as Actor',
         arrows: {
-          "->>": "Synchronous message",
-          "-->>": "Return message",
-          "-x": "Lost message",
-          "-)": "Async message"
+          '->>': 'Synchronous message',
+          '-->>': 'Return message',
+          '-x': 'Lost message',
+          '-)': 'Async message'
         }
       },
       erDiagram: {
-        declaration: "erDiagram",
-        entitySyntax: "ENTITY_NAME { datatype column_name constraints }",
+        declaration: 'erDiagram',
+        entitySyntax: 'ENTITY_NAME { datatype column_name constraints }',
         relationships: {
-          "||--||": "One to one",
-          "||--o{": "One to many",
-          "o{--o{": "Many to many"
+          '||--||': 'One to one',
+          '||--o{': 'One to many',
+          'o{--o{': 'Many to many'
         },
-        constraints: ["PK", "FK", "UK"]
+        constraints: ['PK', 'FK', 'UK']
       },
       classDiagram: {
-        declaration: "classDiagram",
-        visibility: {"+": "public", "-": "private", "#": "protected"},
+        declaration: 'classDiagram',
+        visibility: {'+': 'public', '-': 'private', '#': 'protected'},
         relationships: {
-          "<|--": "Inheritance",
-          "*--": "Composition",
-          "o--": "Aggregation",
-          "-->": "Association"
+          '<|--': 'Inheritance',
+          '*--': 'Composition',
+          'o--': 'Aggregation',
+          '-->': 'Association'
         }
       }
     };
 
     return references[diagramType] || {
       declaration: diagramType,
-      note: "Refer to Mermaid documentation for specific syntax"
+      note: 'Refer to Mermaid documentation for specific syntax'
     };
   }
 }

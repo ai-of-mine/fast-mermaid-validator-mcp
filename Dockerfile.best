@@ -6,7 +6,7 @@
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
-FROM --platform=$TARGETPLATFORM node:18-alpine
+FROM --platform=$TARGETPLATFORM node:22-alpine
 
 # Show build info for debugging
 RUN echo "Building on: $BUILDPLATFORM, targeting: $TARGETPLATFORM" && \
@@ -79,4 +79,4 @@ LABEL \
     version="1.0.11" \
     description="Mermaid Validator API - Platform-aware build" \
     maintainer="Gregorio Elias Roecker Momm" \
-    base.image="node:18-alpine"
+    base.image="node:22-alpine"
