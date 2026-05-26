@@ -1,0 +1,46 @@
+# Distroless build: smallest attack surface, no shell, no package manager.
+# Uses Google's distroless/nodejs22 as the runtime; builds deps in node:22-alpine.
+# Final image is ~150 MB and has no apk/apt/sh inside.
+
+# ---- build stage: install prod deps in a full image ----
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+# Copy manifest first for cache reuse
+COPY package*.json ./
+
+# Production-only install, no postinstall scripts (avoids needing build tooling)
+RUN npm ci --omit=dev --no-audit --no-fund --ignore-scripts && \
+    npm cache clean --force
+
+# Copy app source (matches Dockerfile.alpine layout)
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+
+# Drop docs from inside source trees so they don't bloat the final layer
+RUN find /app -type f -name "*.md" -delete
+
+# ---- runtime stage: distroless ----
+FROM gcr.io/distroless/nodejs22-debian12:nonroot
+
+WORKDIR /app
+
+# Bring over installed deps and source from builder. Distroless `nonroot`
+# tag runs as uid 65532; chown so the runtime user can read everything.
+COPY --from=builder --chown=nonroot:nonroot /app /app
+
+ENV NODE_ENV=production \
+    PORT=8000 \
+    LOG_LEVEL=info
+
+EXPOSE 8000
+
+# distroless has no shell, so HEALTHCHECK / CMD must be pure exec form.
+# distroless/nodejs22 sets ENTRYPOINT=["/nodejs/bin/node"], so CMD passes args.
+CMD ["src/server.js"]
+
+LABEL name="fast-mermaid-validator-mcp" \
+      version="1.1.1" \
+      description="Fast Mermaid Validator MCP (distroless variant)" \
+      base.image="gcr.io/distroless/nodejs22-debian12:nonroot"

@@ -1,6 +1,6 @@
 {
   "name": "@ai-of-mine/fast-mermaid-validator-mcp",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "High-performance API and Model Context Protocol (MCP) server for validating Mermaid diagrams with comprehensive security features, multiple transport options, and enterprise-grade capabilities",
   "main": "src/server.js",
   "bin": "src/server.js",
@@ -137,6 +137,7 @@
     "express-rate-limit": "^8.5.2",
     "express-validator": "^7.3.2",
     "helmet": "^8.2.0",
+    "jison": "^0.4.18",
     "joi": "^18.2.1",
     "langium": "^4.2.4",
     "mime-types": "^3.0.2",
@@ -162,7 +163,6 @@
     "globals": "^16.4.0",
     "form-data": "^4.0.5",
     "jest": "^30.4.2",
-    "jison": "^0.4.18",
     "langium-cli": "^4.2.1",
     "license-checker": "^25.0.1",
     "nodemon": "^3.1.14",

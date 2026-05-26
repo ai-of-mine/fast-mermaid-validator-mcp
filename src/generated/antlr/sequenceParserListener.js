@@ -1,4 +1,4 @@
-// Generated from /Users/gregoriomomm/workspace/ica/mermaid-validator-mcp/src/services/zenuml/sequenceParser.g4 by ANTLR 4.13.2
+// Generated from /Users/gregoriomomm/workspace/fast-mermaid-validator-mcp/src/services/zenuml/sequenceParser.g4 by ANTLR 4.13.2
 // jshint ignore: start
 import antlr4 from 'antlr4';
 

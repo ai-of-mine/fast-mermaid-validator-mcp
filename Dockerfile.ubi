@@ -1,0 +1,49 @@
+# UBI build: Red Hat Universal Base Image, Node.js 22 minimal.
+# Right choice for IBM / RHEL / OpenShift / FIPS-leaning deployments.
+# Final image is ~280-330 MB.
+
+# ---- build stage on full UBI nodejs (has npm + build tools) ----
+FROM registry.access.redhat.com/ubi9/nodejs-22:latest AS builder
+
+USER root
+WORKDIR /opt/app-root/src
+
+COPY --chown=1001:0 package*.json ./
+
+# Production-only install, no postinstall (no jison/langium needed; generated
+# parsers already shipped in src/generated/).
+RUN npm ci --omit=dev --no-audit --no-fund --ignore-scripts && \
+    npm cache clean --force
+
+COPY --chown=1001:0 src/ ./src/
+COPY --chown=1001:0 scripts/ ./scripts/
+
+RUN find . -type f -name "*.md" -delete
+
+# ---- runtime on minimal UBI nodejs (no dnf, smaller) ----
+FROM registry.access.redhat.com/ubi9/nodejs-22-minimal:latest
+
+WORKDIR /opt/app-root/src
+
+COPY --from=builder --chown=1001:0 /opt/app-root/src /opt/app-root/src
+
+ENV NODE_ENV=production \
+    PORT=8000 \
+    LOG_LEVEL=info
+
+USER 1001
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:8000/api/v1/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+CMD ["node", "src/server.js"]
+
+LABEL name="fast-mermaid-validator-mcp" \
+      version="1.1.1" \
+      description="Fast Mermaid Validator MCP (UBI variant)" \
+      vendor="ai-of-mine" \
+      base.image="registry.access.redhat.com/ubi9/nodejs-22-minimal" \
+      io.k8s.description="Fast Mermaid diagram validator with MCP support" \
+      io.k8s.display-name="Fast Mermaid Validator MCP"

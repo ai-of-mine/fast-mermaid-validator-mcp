@@ -35,10 +35,10 @@ This script will:
 
 **Single Platform (faster):**
 ```bash
-docker build -t gregoriomomm/fast-mermaid-validator-mcp:1.1.0 \
+docker build -t gregoriomomm/fast-mermaid-validator-mcp:1.1.1 \
              -t gregoriomomm/fast-mermaid-validator-mcp:latest .
 
-docker push gregoriomomm/fast-mermaid-validator-mcp:1.1.0
+docker push gregoriomomm/fast-mermaid-validator-mcp:1.1.1
 docker push gregoriomomm/fast-mermaid-validator-mcp:latest
 ```
 
@@ -50,7 +50,7 @@ docker buildx create --name multiarch-builder --use
 # Build and push multi-arch
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t gregoriomomm/fast-mermaid-validator-mcp:1.1.0 \
+  -t gregoriomomm/fast-mermaid-validator-mcp:1.1.1 \
   -t gregoriomomm/fast-mermaid-validator-mcp:latest \
   --push .
 ```
@@ -87,10 +87,10 @@ Once published on Docker Hub, users can pull and run:
 docker pull gregoriomomm/fast-mermaid-validator-mcp:latest
 
 # Pull specific version
-docker pull gregoriomomm/fast-mermaid-validator-mcp:1.1.0
+docker pull gregoriomomm/fast-mermaid-validator-mcp:1.1.1
 
 # Run
-docker run -p 8000:8000 gregoriomomm/fast-mermaid-validator-mcp:1.1.0
+docker run -p 8000:8000 gregoriomomm/fast-mermaid-validator-mcp:1.1.1
 
 # Run with environment variables
 docker run -p 8000:8000 \
@@ -110,7 +110,7 @@ docker run -p 8080:8080 \
 version: '3.8'
 services:
   mermaid-validator:
-    image: gregoriomomm/fast-mermaid-validator-mcp:1.1.0
+    image: gregoriomomm/fast-mermaid-validator-mcp:1.1.1
     ports:
       - "8000:8000"
     environment:
@@ -130,7 +130,7 @@ services:
 
 **Tags:**
 - `latest` - Latest stable release
-- `1.1.0` - Specific version with CVE-2025-9230 fix
+- `1.1.1` - Specific version with CVE-2025-9230 fix
 - Future versions will follow semantic versioning
 
 **Platforms:**
@@ -164,7 +164,7 @@ docker login
 open https://hub.docker.com/r/gregoriomomm/fast-mermaid-validator-mcp
 
 # 5. Test locally
-docker run -p 8000:8000 gregoriomomm/fast-mermaid-validator-mcp:1.1.0
+docker run -p 8000:8000 gregoriomomm/fast-mermaid-validator-mcp:1.1.1
 
 # 6. Test in browser
 open http://localhost:8000/api/v1/health
