@@ -102,7 +102,7 @@
 ### Contacts
 - **Author:** Gregorio Elias Roecker Momm
 - **Project Type:** Enterprise Mermaid Validation API
-- **License:** Proprietary
+- **License:** Apache License 2.0
 
 ### Resources
 - **Source Repository:** Private repository with version control

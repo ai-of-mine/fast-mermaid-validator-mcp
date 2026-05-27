@@ -71,7 +71,9 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
+# NOTE: dist/ is intentionally NOT in .dockerignore — the Streamable HTTP MCP
+# entry point (dist/mcp/server-http.js) is copied into the image by Dockerfile.
+# Run `npm run build:mcp` locally before `docker build` to regenerate it.
 
 # Gatsby files
 .cache/

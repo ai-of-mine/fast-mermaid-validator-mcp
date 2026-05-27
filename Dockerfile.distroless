@@ -1,24 +1,22 @@
-# Distroless build: smallest attack surface, no shell, no package manager.
-# Uses Google's distroless/nodejs22 as the runtime; builds deps in node:22-alpine.
-# Final image is ~150 MB and has no apk/apt/sh inside.
+# Distroless variant: smallest attack surface, no shell, no package manager.
+# Default ENTRYPOINT is the Streamable HTTP MCP server (stateless) on port 8080.
 
-# ---- build stage: install prod deps in a full image ----
+# ---- build stage ----
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy manifest first for cache reuse
 COPY package*.json ./
 
-# Production-only install, no postinstall scripts (avoids needing build tooling)
+# Production-only install. Build scripts skipped — generated artefacts are
+# committed under src/generated/jison + dist/mcp.
 RUN npm ci --omit=dev --no-audit --no-fund --ignore-scripts && \
     npm cache clean --force
 
-# Copy app source (matches Dockerfile.alpine layout)
 COPY src/ ./src/
 COPY scripts/ ./scripts/
+COPY dist/ ./dist/
 
-# Drop docs from inside source trees so they don't bloat the final layer
 RUN find /app -type f -name "*.md" -delete
 
 # ---- runtime stage: distroless ----
@@ -26,21 +24,23 @@ FROM gcr.io/distroless/nodejs22-debian12:nonroot
 
 WORKDIR /app
 
-# Bring over installed deps and source from builder. Distroless `nonroot`
-# tag runs as uid 65532; chown so the runtime user can read everything.
+# distroless `nonroot` tag = uid 65532
 COPY --from=builder --chown=nonroot:nonroot /app /app
 
 ENV NODE_ENV=production \
-    PORT=8000 \
-    LOG_LEVEL=info
+    LOG_LEVEL=info \
+    MCP_HTTP_PORT=8080 \
+    MCP_HTTP_HOST=0.0.0.0 \
+    PORT=8000
 
-EXPOSE 8000
+EXPOSE 8080 8000
 
-# distroless has no shell, so HEALTHCHECK / CMD must be pure exec form.
+# distroless has no shell, so CMD must be pure exec form.
 # distroless/nodejs22 sets ENTRYPOINT=["/nodejs/bin/node"], so CMD passes args.
-CMD ["src/server.js"]
+# Default: stateless Streamable HTTP MCP. Override for REST: ... src/server.js
+CMD ["dist/mcp/server-http.js"]
 
 LABEL name="fast-mermaid-validator-mcp" \
-      version="1.1.1" \
-      description="Fast Mermaid Validator MCP (distroless variant)" \
+      version="1.2.0" \
+      description="Fast Mermaid Validator MCP (distroless) — default Streamable HTTP MCP transport (stateless)" \
       base.image="gcr.io/distroless/nodejs22-debian12:nonroot"

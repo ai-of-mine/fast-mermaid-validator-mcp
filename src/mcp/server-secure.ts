@@ -12,7 +12,7 @@ export interface SecureMCPOptions {
   http?: {
     port?: number;
     host?: string;
-    enableSSE?: boolean;
+    stateful?: boolean;
   };
   security?: SecurityOptions;
   environment?: 'development' | 'production';
@@ -25,8 +25,8 @@ export class SecureMermaidValidatorMCPServer extends MermaidValidatorHTTPServer 
   constructor(options: SecureMCPOptions = {}) {
     const httpOptions = {
       port: options.http?.port || parseInt(process.env.MCP_HTTP_PORT || '8080'),
-      host: options.http?.host || process.env.MCP_HTTP_HOST || 'localhost',
-      enableSSE: options.http?.enableSSE !== false,
+      host: options.http?.host || process.env.MCP_HTTP_HOST || '0.0.0.0',
+      stateful: options.http?.stateful ?? (process.env.MCP_STATEFUL === 'true'),
       cors: {
         origin: process.env.MCP_CORS_ORIGIN?.split(',') || '*',
         credentials: true
@@ -88,9 +88,7 @@ export class SecureMermaidValidatorMCPServer extends MermaidValidatorHTTPServer 
       endpoints: {
         mcp: `http://${this.httpOptions.host}:${this.httpOptions.port}/mcp`,
         health: `http://${this.httpOptions.host}:${this.httpOptions.port}/health`,
-        info: `http://${this.httpOptions.host}:${this.httpOptions.port}/info`,
-        stream: this.httpOptions.enableSSE ?
-          `http://${this.httpOptions.host}:${this.httpOptions.port}/mcp/stream` : null
+        info: `http://${this.httpOptions.host}:${this.httpOptions.port}/info`
       },
       security: {
         authentication: this.securityMiddleware.options?.authentication?.enabled,
@@ -179,8 +177,8 @@ if (require.main === module) {
     environment,
     http: {
       port: parseInt(process.env.MCP_HTTP_PORT || '8080'),
-      host: process.env.MCP_HTTP_HOST || 'localhost',
-      enableSSE: process.env.MCP_ENABLE_SSE !== 'false'
+      host: process.env.MCP_HTTP_HOST || '0.0.0.0',
+      stateful: process.env.MCP_STATEFUL === 'true'
     },
     security: {
       authentication: {

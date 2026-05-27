@@ -17,8 +17,9 @@ export class MermaidValidatorHTTPServer extends MermaidValidatorMCPServer {
 
     this.httpOptions = {
       port: httpOptions?.port || parseInt(process.env.MCP_HTTP_PORT || '8080'),
-      host: httpOptions?.host || process.env.MCP_HTTP_HOST || 'localhost',
-      enableSSE: httpOptions?.enableSSE !== false, // Enable by default
+      host: httpOptions?.host || process.env.MCP_HTTP_HOST || '0.0.0.0',
+      // Stateless by default. Set MCP_STATEFUL=true to enable session IDs.
+      stateful: httpOptions?.stateful ?? (process.env.MCP_STATEFUL === 'true'),
       cors: httpOptions?.cors || {
         origin: process.env.MCP_CORS_ORIGIN || '*',
         credentials: true
@@ -32,24 +33,21 @@ export class MermaidValidatorHTTPServer extends MermaidValidatorMCPServer {
   async startHttp(): Promise<void> {
     this.httpTransport = new HttpTransport(this, this.httpOptions);
 
-    logger.info('Starting Mermaid Validator MCP Server with HTTP transport', {
+    logger.info('Starting Mermaid Validator MCP Server with Streamable HTTP transport', {
       serverName: 'mermaid-validator',
-      version: '1.0.0',
-      transport: 'http',
+      transport: 'streamable-http',
+      mode: this.httpOptions.stateful ? 'stateful' : 'stateless',
       port: this.httpOptions.port,
-      host: this.httpOptions.host,
-      sseEnabled: this.httpOptions.enableSSE
+      host: this.httpOptions.host
     });
 
     await this.httpTransport.start();
 
-    logger.info('HTTP MCP Server ready', {
+    logger.info('Streamable HTTP MCP Server ready', {
       endpoints: {
         mcp: `http://${this.httpOptions.host}:${this.httpOptions.port}/mcp`,
         health: `http://${this.httpOptions.host}:${this.httpOptions.port}/health`,
-        info: `http://${this.httpOptions.host}:${this.httpOptions.port}/info`,
-        stream: this.httpOptions.enableSSE ?
-          `http://${this.httpOptions.host}:${this.httpOptions.port}/mcp/stream` : null
+        info: `http://${this.httpOptions.host}:${this.httpOptions.port}/info`
       }
     });
   }
@@ -83,10 +81,10 @@ export class MermaidValidatorHTTPServer extends MermaidValidatorMCPServer {
    */
   getStatus() {
     return {
-      transport: 'http',
+      transport: 'streamable-http',
+      mode: this.httpOptions.stateful ? 'stateful' : 'stateless',
       port: this.httpOptions.port,
       host: this.httpOptions.host,
-      sseEnabled: this.httpOptions.enableSSE,
       running: this.httpTransport !== null
     };
   }

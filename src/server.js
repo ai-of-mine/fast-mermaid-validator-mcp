@@ -300,16 +300,34 @@ if (require.main === module) {
     }
   }
 
-  // Check for MCP server flags
+  // Check for MCP server flags. The compiled MCP modules guard their auto-start
+  // behind `require.main === module`, so we can't `require()` them — we have
+  // to instantiate the exported class directly and call its start method.
   if (args.includes('--mcp-http')) {
     logger.info('Starting MCP HTTP server...', { port: process.env.MCP_HTTP_PORT || '8080' });
-    require('../dist/mcp/server-http.js');
+    const HTTPServer = require('../dist/mcp/server-http.js').default
+      || require('../dist/mcp/server-http.js').MermaidValidatorHTTPServer;
+    const mcp = new HTTPServer();
+    process.on('SIGINT', async () => { await mcp.shutdown(); process.exit(0); });
+    process.on('SIGTERM', async () => { await mcp.shutdown(); process.exit(0); });
+    mcp.startHttp().catch((err) => { logger.logError(err, { context: 'cli-mcp-http' }); process.exit(1); });
   } else if (args.includes('--mcp-stdio')) {
     logger.info('Starting MCP stdio server...');
-    require('../dist/mcp/server.js');
+    const StdioServer = require('../dist/mcp/server.js').default
+      || require('../dist/mcp/server.js').MermaidValidatorMCPServer;
+    const mcp = new StdioServer();
+    process.on('SIGINT', async () => { await mcp.shutdown(); process.exit(0); });
+    process.on('SIGTERM', async () => { await mcp.shutdown(); process.exit(0); });
+    mcp.startStdio().catch((err) => { logger.logError(err, { context: 'cli-mcp-stdio' }); process.exit(1); });
   } else if (args.includes('--mcp-secure')) {
     logger.info('Starting MCP secure server...', { port: process.env.MCP_HTTP_PORT || '8080' });
-    require('../dist/mcp/server-secure.js');
+    const SecureServer = require('../dist/mcp/server-secure.js').default
+      || require('../dist/mcp/server-secure.js').SecureMermaidValidatorMCPServer;
+    const mcp = new SecureServer();
+    process.on('SIGINT', async () => { await mcp.shutdown(); process.exit(0); });
+    process.on('SIGTERM', async () => { await mcp.shutdown(); process.exit(0); });
+    const starter = typeof mcp.start === 'function' ? mcp.start.bind(mcp) : mcp.startHttp.bind(mcp);
+    starter().catch((err) => { logger.logError(err, { context: 'cli-mcp-secure' }); process.exit(1); });
   } else if (args.includes('--help') || args.includes('-h')) {
     console.log(`
 Mermaid Validator MCP - Multi-mode Server

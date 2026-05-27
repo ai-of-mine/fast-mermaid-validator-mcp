@@ -75,7 +75,7 @@ securityContext:
 #### License Compliance
 - **Status**: ✅ Compliant
 - **Licenses**: MIT, Apache-2.0, BSD-3-Clause, ISC
-- **Proprietary**: Application itself (PROPRIETARY license)
+- **This project**: Apache License 2.0
 
 ### Security Scanning Results
 

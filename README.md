@@ -2,39 +2,56 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 [![npm version](https://img.shields.io/npm/v/@ai-of-mine/fast-mermaid-validator-mcp)](https://www.npmjs.com/package/@ai-of-mine/fast-mermaid-validator-mcp)
-[![Node.js](https://img.shields.io/badge/Node.js-18.x-brightgreen)](https://nodejs.org/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue)](./Dockerfile)
-[![Open Source](https://img.shields.io/badge/Open%20Source-❤-red)](./CONTRIBUTING.md)
+[![Node.js](https://img.shields.io/badge/Node.js-≥20-brightgreen)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Multi--arch-blue)](https://hub.docker.com/r/gregoriomomm/fast-mermaid-validator-mcp/tags)
+[![Open Source](https://img.shields.io/badge/Open%20Source-Apache%202.0-red)](./CONTRIBUTING.md)
 
 High-performance API and **Model Context Protocol (MCP) server** for validating Mermaid diagrams with comprehensive security features, multiple transport options, and enterprise-grade capabilities.
 
 **Author**: Gregorio Elias Roecker Momm (gregoriomomm@gmail.com)
 
-## 🆕 **Latest Updates**
+## 🆕 **v1.2.0 — Streamable HTTP MCP transport (stateless)**
 
-**Unified CLI with Port Configuration:**
-- ✅ **Single Command**: One `npx` command with flags to start any server mode
-- ✅ **Port Control**: `--port <number>` flag works with all server modes
-- ✅ **Environment Variables**: `PORT`, `MCP_HTTP_PORT`, `MCP_HTTP_HOST` support
-- ✅ **REST API**: `npx @ai-of-mine/fast-mermaid-validator-mcp` (default port: 8000)
-- ✅ **MCP HTTP**: `npx @ai-of-mine/fast-mermaid-validator-mcp --mcp-http` (default port: 8080)
-- ✅ **Built-in Help**: `npx @ai-of-mine/fast-mermaid-validator-mcp --help`
+The MCP HTTP server is now backed by the official `StreamableHTTPServerTransport`
+from `@modelcontextprotocol/sdk@^1.29.0`, replacing the previous custom SSE
+implementation. It is **MCP-spec-compliant** and runs in **stateless mode** by
+default — every request is independent, so the server fits cleanly behind load
+balancers and in serverless runtimes.
 
-**Package Features:**
-- ✅ **NPM Package**: Available as `@ai-of-mine/fast-mermaid-validator-mcp`
-- ✅ **Security Updates**: Fixed multer vulnerabilities
-- ✅ **Clean Logging**: Default log level set to `warn` for production readiness
-- ✅ **Complete Distribution**: Both source (`src/`) and compiled (`dist/mcp/`) files
-- ✅ **Enterprise Ready**: Unlimited configuration, environment variables, Docker support
+- ✅ **Default container CMD**: stateless Streamable HTTP MCP on port `8080`
+- ✅ **Three image variants** (multi-arch amd64+arm64):
+  `:1.2.0` (alpine, ~282 MB), `:1.2.0-distroless` (~200 MB, no shell),
+  `:1.2.0-ubi` (~304 MB, FIPS-friendly)
+- ✅ **REST API still ships in the same image** — override `CMD` to start it
+- ✅ **Stateful mode opt-in** via `MCP_STATEFUL=true`
+- ✅ **42 of 46 npm security advisories cleared** since v1.0.32
+  (the residual 4 are in the jison parser-generator chain — see
+  [RELEASE_NOTES_v1.1.1.md](./RELEASE_NOTES_v1.1.1.md) for exploitability
+  analysis and the `audit-ci.json` allowlist)
+- ✅ **Node engine: `>=20`** (was 18); ESLint 9 + flat config; Jest 30; uuid 14
+- ✅ **Express 5** with patched path-to-regexp
+- ✅ **Integration tests**: 25 passed / 0 failed / 1 skipped (`exampleDiagram`,
+  with `skip: 'reason'` so it doesn't false-positive)
 
-**API Endpoints:**
-- `http://localhost:8000/api/v1/validate` - Direct diagram validation (JSON)
-- `http://localhost:8000/api/v1/upload/file` - File upload validation (multipart)
+**Endpoints**
 
-**MCP Server Commands:**
-- `npx @ai-of-mine/fast-mermaid-validator-mcp --mcp-stdio` - Stdio transport (Claude Desktop)
-- `npx @ai-of-mine/fast-mermaid-validator-mcp --mcp-http` - HTTP transport (port 8080)
-- `npx @ai-of-mine/fast-mermaid-validator-mcp --mcp-secure` - Secure HTTP with authentication
+| Endpoint | Default port | What |
+|---|---|---|
+| `/mcp`         | 8080 | Streamable HTTP MCP (POST/GET/DELETE) |
+| `/health`      | 8080 | MCP server liveness probe |
+| `/info`        | 8080 | MCP server metadata (name, version, transport, mode) |
+| `/api/v1/validate`     | 8000 | REST API: validate diagrams (JSON) |
+| `/api/v1/upload/file`  | 8000 | REST API: upload files (multipart) |
+| `/api/v1/health`       | 8000 | REST API liveness probe |
+
+**MCP commands (npm install path)**
+
+```bash
+npx @ai-of-mine/fast-mermaid-validator-mcp --mcp-http     # Streamable HTTP (stateless), port 8080
+npx @ai-of-mine/fast-mermaid-validator-mcp --mcp-stdio    # stdio (for Claude Desktop / Claude Code)
+npx @ai-of-mine/fast-mermaid-validator-mcp --mcp-secure   # Streamable HTTP + HMAC/rate-limit
+npx @ai-of-mine/fast-mermaid-validator-mcp                # REST API (default), port 8000
+```
 
 ## 🚀 **Dual Architecture: REST API + MCP Server**
 
@@ -712,16 +729,52 @@ GET /api/v1/validate/stats
 
 ## 🚀 **Quick Start**
 
-### Using Docker (Recommended)
+### Using Docker / Podman (Recommended)
+
+All images on Docker Hub are multi-arch (linux/amd64 + linux/arm64).
+Default `CMD` is the **stateless Streamable HTTP MCP server on port 8080**.
 
 ```bash
-# Pull and run the container
-docker run -p 8000:8000 mermaid-validator-mcp
+# Default — Streamable HTTP MCP, port 8080
+podman run --rm -p 8080:8080 gregoriomomm/fast-mermaid-validator-mcp:1.2.0
 
-# Or build from source
-git clone <repository>
-cd mermaid-validator-mcp
-docker-compose up
+# Most secure (no shell, no pkg mgr inside; ~200 MB)
+podman run --rm -p 8080:8080 gregoriomomm/fast-mermaid-validator-mcp:1.2.0-distroless
+
+# IBM / RHEL / OpenShift / FIPS-friendly (~304 MB)
+podman run --rm -p 8080:8080 gregoriomomm/fast-mermaid-validator-mcp:1.2.0-ubi
+
+# Override to run the REST API instead (port 8000)
+podman run --rm -p 8000:8000 \
+  gregoriomomm/fast-mermaid-validator-mcp:1.2.0 \
+  node src/server.js
+
+# Verify
+curl -s http://localhost:8080/health | jq      # MCP /health
+curl -s http://localhost:8080/info | jq        # MCP /info
+
+# Send an MCP tools/list request
+curl -s -X POST http://localhost:8080/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+
+# Send a tool call to validate a diagram
+curl -s -X POST http://localhost:8080/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"validate-diagrams","arguments":{"diagrams":[{"type":"flowchart","content":"graph TD\nA-->B"}]}},"id":2}'
+```
+
+Build from source:
+```bash
+git clone https://github.com/ai-of-mine/fast-mermaid-validator-mcp.git
+cd fast-mermaid-validator-mcp
+npm install
+npm run build:mcp
+docker build -t fast-mermaid-validator-mcp:local .                   # alpine
+docker build -f Dockerfile.distroless -t ...:local-distroless .      # distroless
+docker build -f Dockerfile.ubi        -t ...:local-ubi .             # UBI
 ```
 
 ### Using Node.js
@@ -1014,7 +1067,7 @@ treemap-beta
 
 ## License
 
-PROPRIETARY - see LICENSE file for details.
+Apache License 2.0 — see [LICENSE](LICENSE) for the full text.
 
 ## Author
 

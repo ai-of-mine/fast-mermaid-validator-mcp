@@ -20,7 +20,8 @@ import { validateFilesToolSchema, handleValidateFiles } from "./tools/validateFi
 import { getStatsToolSchema, handleGetStats } from "./tools/getStats.js";
 
 export class MermaidValidatorMCPServer {
-  private server: McpServer;
+  // Public so transport implementations can `.connect()` the underlying McpServer.
+  public server: McpServer;
   private validator: any;
   private fileProcessor: any;
 

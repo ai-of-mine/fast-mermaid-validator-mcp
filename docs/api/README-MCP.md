@@ -431,7 +431,7 @@ const response = await fetch('http://localhost:8080/mcp', {
 
 ## 📄 License
 
-PROPRIETARY - Gregorio Elias Roecker Momm
+Apache License 2.0 — see the [LICENSE](../../LICENSE) file for full text.
 
 ## 🆘 Support
 
