@@ -4,7 +4,7 @@
 
 set -e
 
-VERSION="1.2.2"
+VERSION="1.3.0-beta.1"
 IMAGE_NAME="gregoriomomm/fast-mermaid-validator-mcp"
 
 echo "Building Docker image: ${IMAGE_NAME}:${VERSION}"
