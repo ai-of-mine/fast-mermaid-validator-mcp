@@ -60,5 +60,5 @@ EXPOSE 8080 8000
 CMD ["node", "dist/mcp/server-http.js"]
 
 LABEL name="fast-mermaid-validator-mcp" \
-      version="1.3.3" \
+      version="1.3.4" \
       description="Fast Mermaid Validator MCP — default Streamable HTTP MCP transport (stateless)"
