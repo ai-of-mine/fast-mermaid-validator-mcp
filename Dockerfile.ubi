@@ -1,33 +1,58 @@
 # UBI variant: Red Hat Universal Base Image, Node.js 22 minimal.
-# Right choice for IBM / RHEL / OpenShift / FIPS-leaning deployments.
 # Default ENTRYPOINT is the Streamable HTTP MCP server (stateless) on port 8080.
+#
+# Best practices merged from the mmjc/mmjc-mermaid-validator IBM-internal
+# reference (develop branch, 2026-05-27): pinned UBI digests for
+# reproducibility, OpenShift-aware labels, explicit microdnf security update
+# step, multi-stage with a dedicated production-deps stage.
+#
+# To refresh the pinned digests:
+#   podman pull registry.access.redhat.com/ubi9/nodejs-22:latest
+#   podman pull registry.access.redhat.com/ubi9/nodejs-22-minimal:latest
+#   podman inspect ...latest --format '{{.Digest}}'
+# then update both FROM lines.
 
-# ---- build stage on full UBI nodejs (has npm) ----
-FROM registry.access.redhat.com/ubi9/nodejs-22:latest AS builder
+# ---- 1) dependencies stage (full UBI nodejs-22, has npm) ----
+FROM registry.access.redhat.com/ubi9/nodejs-22@sha256:2a5add0f16367416a322b6a368910a90411247ad42ec75d57415929bbcd63d59 AS dependencies
 
 USER root
 WORKDIR /opt/app-root/src
 
 COPY --chown=1001:0 package*.json ./
 
-# Production-only install. Build scripts skipped — generated artefacts are
-# committed under src/generated/jison + dist/mcp.
+# Production-only deps. Build scripts skipped — grammar parsers and MCP
+# TypeScript output are committed under src/generated/ + dist/mcp/, both
+# COPYed in by the production stage below.
 RUN npm ci --omit=dev --no-audit --no-fund --ignore-scripts && \
     npm cache clean --force
 
-COPY --chown=1001:0 src/ ./src/
-COPY --chown=1001:0 scripts/ ./scripts/
-COPY --chown=1001:0 dist/ ./dist/
+# ---- 2) production stage (minimal UBI, no dnf) ----
+FROM registry.access.redhat.com/ubi9/nodejs-22-minimal@sha256:d4f9241f55f1db6021ebe3cc63930243ac3484dff265a2cdfd6f27ba17ea3f2f AS production
 
-RUN find . -type f -name "*.md" -delete
+USER root
 
-# ---- runtime on minimal UBI nodejs (no dnf, smaller) ----
-FROM registry.access.redhat.com/ubi9/nodejs-22-minimal:latest
+# OS-level security update against the pinned base. Keeps the
+# attack surface current without re-pulling a floating tag at build time.
+RUN microdnf update -y && \
+    microdnf clean all && \
+    rm -rf /var/cache/yum /var/cache/dnf
 
 WORKDIR /opt/app-root/src
 
-COPY --from=builder --chown=1001:0 /opt/app-root/src /opt/app-root/src
+# Bring deps over from the dependencies stage
+COPY --from=dependencies --chown=1001:0 /opt/app-root/src/node_modules ./node_modules
 
+# Application source
+COPY --chown=1001:0 src/ ./src/
+COPY --chown=1001:0 scripts/ ./scripts/
+COPY --chown=1001:0 dist/ ./dist/
+COPY --chown=1001:0 package.json LICENSE NOTICE ./
+
+# Drop docs nested under source dirs to keep the layer small
+RUN find /opt/app-root/src/src -type f -name "*.md" -delete && \
+    find /opt/app-root/src/scripts -type f -name "*.md" -delete 2>/dev/null || true
+
+# Runtime config
 ENV NODE_ENV=production \
     LOG_LEVEL=info \
     MCP_HTTP_PORT=8080 \
@@ -44,10 +69,20 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
 # Default: stateless Streamable HTTP MCP. Override for REST: ... node src/server.js
 CMD ["node", "dist/mcp/server-http.js"]
 
+# OpenShift / Kubernetes / OCI metadata
 LABEL name="fast-mermaid-validator-mcp" \
       version="1.3.0-beta.2" \
-      description="Fast Mermaid Validator MCP (UBI) — default Streamable HTTP MCP transport (stateless)" \
+      summary="Fast Mermaid Validator MCP — Streamable HTTP transport (stateless)" \
+      description="High-performance Mermaid diagram validator exposed as an MCP Streamable HTTP server (spec-compliant, stateless). Default port 8080. Optional REST API on 8000 via override." \
       vendor="ai-of-mine" \
+      maintainer="Gregorio Elias Roecker Momm <gregoriomomm@gmail.com>" \
+      release="1" \
       base.image="registry.access.redhat.com/ubi9/nodejs-22-minimal" \
-      io.k8s.description="Fast Mermaid diagram validator with MCP support" \
-      io.k8s.display-name="Fast Mermaid Validator MCP"
+      io.k8s.display-name="Fast Mermaid Validator MCP" \
+      io.k8s.description="MCP server validating Mermaid diagrams (28 types) over Streamable HTTP transport" \
+      io.openshift.tags="nodejs,mermaid,validator,mcp,streamable-http,diagrams" \
+      io.openshift.expose-services="8080:http,8000:http" \
+      org.opencontainers.image.source="https://github.com/ai-of-mine/fast-mermaid-validator-mcp" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.title="fast-mermaid-validator-mcp (UBI)" \
+      org.opencontainers.image.documentation="https://github.com/ai-of-mine/fast-mermaid-validator-mcp#readme"
