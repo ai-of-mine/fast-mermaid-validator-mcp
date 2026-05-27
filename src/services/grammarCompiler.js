@@ -73,9 +73,14 @@ class GrammarCompiler {
     
     this.grammarPaths.set('timeline', path.join(basePath, 'timeline/timeline.jison'));
     
-    // Add example diagram mapping
-    this.grammarPaths.set('exampleDiagram', path.join(basePath, 'examples/diagrams/exampleDiagram.jison'));
-    
+    // 'exampleDiagram' was a placeholder mapping whose .jison grammar was
+    // never shipped. The runtime warning it produced on every boot
+    // ("Grammar file does not exist: .../exampleDiagram.jison") is harmless
+    // but noisy. Removed in v1.2.1. The parser-context case below stays so
+    // that the public API surface (getSupportedTypes / contexts) is
+    // unchanged if anyone re-adds the grammar file later.
+
+
     // These are Langium-based (packet, architecture, treemap) but add them for reference
     this.grammarPaths.set('packet-beta', 'LANGIUM'); // Langium-based
     this.grammarPaths.set('packet', 'LANGIUM'); // Langium-based  
