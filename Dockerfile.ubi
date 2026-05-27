@@ -45,7 +45,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
 CMD ["node", "dist/mcp/server-http.js"]
 
 LABEL name="fast-mermaid-validator-mcp" \
-      version="1.2.2" \
+      version="1.2.3" \
       description="Fast Mermaid Validator MCP (UBI) — default Streamable HTTP MCP transport (stateless)" \
       vendor="ai-of-mine" \
       base.image="registry.access.redhat.com/ubi9/nodejs-22-minimal" \
