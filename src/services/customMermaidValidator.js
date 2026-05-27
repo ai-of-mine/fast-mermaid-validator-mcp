@@ -10,12 +10,14 @@ const logger = require('../utils/logger');
 const GrammarCompiler = require('./grammarCompiler');
 const LangiumValidator = require('./langiumValidator');
 const ValidationInstructions = require('./validationInstructions');
+const MermaidAutoFixer = require('./mermaidAutoFixer');
 
 class CustomMermaidValidator {
   constructor() {
     this.grammarCompiler = new GrammarCompiler();
     this.langiumValidator = new LangiumValidator();
     this.validationInstructions = new ValidationInstructions();
+    this.autoFixer = new MermaidAutoFixer();
     this.initializeGrammarParsers();
   }
 
@@ -205,6 +207,38 @@ class CustomMermaidValidator {
         line: null
       });
       logger.error('Validation error:', { error: error.message, diagramId: diagram.id, diagramType });
+    }
+
+    // Optional auto-fix pass: when caller asked for it and the diagram is invalid,
+    // run the autofixer and re-validate the fixed content. We expose:
+    //   - result.autoFixed     true iff the fixer changed the content
+    //   - result.fixedContent  the post-fix content (only when autoFixed)
+    //   - result.appliedFixes  list of fixes the autofixer applied
+    // Callers (MarkdownMermaidFixer.fixDiagramIteratively) iterate by re-calling
+    // validateDiagram on the returned fixedContent until valid or no more progress.
+    if (!result.valid && options.autoFix === true && result.errors.length > 0) {
+      try {
+        const fix = this.autoFixer.autoFix(diagram.content, diagramType, result.errors);
+        if (fix && fix.fixable && fix.fixedContent && fix.fixedContent !== diagram.content) {
+          result.autoFixed = true;
+          result.fixedContent = fix.fixedContent;
+          result.appliedFixes = fix.appliedFixes || [];
+
+          // Re-validate the fixed content; if it now parses, mark valid and
+          // clear the stale error list so callers see a clean success.
+          const reValid = { errors: [], warnings: [] };
+          const reCheck = await this.validateWithRealGrammar(fix.fixedContent, diagramType, reValid);
+          if (reCheck && reCheck.valid) {
+            result.valid = true;
+            result.errors = [];
+          }
+        } else {
+          result.autoFixed = false;
+        }
+      } catch (fixError) {
+        logger.error('Auto-fix attempt failed:', { error: fixError.message, diagramId: diagram.id, diagramType });
+        result.autoFixed = false;
+      }
     }
 
     // Add applicable syntax rules for invalid diagrams

@@ -18,6 +18,7 @@ const config = require("../../src/config/config");
 import { validateDiagramsToolSchema, handleValidateDiagrams } from "./tools/validateDiagrams.js";
 import { validateFilesToolSchema, handleValidateFiles } from "./tools/validateFiles.js";
 import { getStatsToolSchema, handleGetStats } from "./tools/getStats.js";
+import { fixDiagramsToolSchema, handleFixDiagrams } from "./tools/fixDiagrams.js";
 
 export class MermaidValidatorMCPServer {
   // Public so transport implementations can `.connect()` the underlying McpServer.
@@ -90,6 +91,32 @@ export class MermaidValidatorMCPServer {
         };
       } catch (error) {
         logger.logError(error as Error, { context: "validate-files-tool" });
+        throw error;
+      }
+    });
+
+    // Fix Diagrams Tool
+    this.server.registerTool("fix-diagrams", {
+      title: "Auto-Fix Mermaid Diagrams",
+      description: "Iteratively auto-fix invalid Mermaid diagrams (missing quotes, broken arrows, unclosed brackets, etc.) and re-validate until valid or no further progress is possible",
+      inputSchema: fixDiagramsToolSchema.shape,
+    }, async (params: any) => {
+      try {
+        const requestId = uuidv4();
+        logger.info("MCP fix-diagrams request", { requestId, diagramCount: params.diagrams?.length });
+
+        const result = await handleFixDiagrams(params, this.validator);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      } catch (error) {
+        logger.logError(error as Error, { context: "fix-diagrams-tool" });
         throw error;
       }
     });
