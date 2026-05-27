@@ -22,6 +22,7 @@ const {
 // Import routes
 const healthRoutes = require('./routes/health');
 const validationRoutes = require('./routes/validation');
+const markdownRoutes = require('./routes/markdown');
 // const svgRoutes = require('./routes/svg'); // TODO: SVG routes file missing
 
 class Server {
@@ -77,6 +78,9 @@ class Server {
     // Validation routes
     this.app.use(apiPrefix, validationRoutes);
 
+    // Markdown processing routes
+    this.app.use(`${apiPrefix}/markdown`, markdownRoutes);
+
     // SVG conversion routes
     // this.app.use(apiPrefix, svgRoutes); // TODO: SVG routes file missing
 
@@ -92,6 +96,8 @@ class Server {
           validate: `${apiPrefix}/validate`,
           upload: `${apiPrefix}/upload/file`,
           stats: `${apiPrefix}/validate/stats`,
+          markdownFix: `${apiPrefix}/markdown/fix`,
+          markdownValidate: `${apiPrefix}/markdown/validate`,
           convertToSvg: `${apiPrefix}/convert-to-svg`,
           svgStatus: `${apiPrefix}/svg-status`,
           examples: `${apiPrefix}/examples/complex-flowchart`
