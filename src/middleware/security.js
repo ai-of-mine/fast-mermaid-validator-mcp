@@ -240,6 +240,21 @@ const errorHandler = (error, req, res, _next) => {
     });
   }
 
+  // Malformed JSON body — express.json() / body-parser sets type =
+  // 'entity.parse.failed' and a SyntaxError instance with error.status = 400.
+  // Surface a useful diagnostic instead of falling through to the generic 500.
+  if (
+    error.type === 'entity.parse.failed' ||
+    (error instanceof SyntaxError && error.status === 400 && 'body' in error)
+  ) {
+    return res.status(400).json({
+      error: 'Bad Request',
+      message: 'Request body is not valid JSON',
+      detail: error.message,
+      hint: 'Check for unescaped newlines or backticks in shell quoting. Build the payload with `jq -Rs \'{content:.}\' file.md` to avoid escape issues.'
+    });
+  }
+
   if (error.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({
       error: 'File Too Large',
@@ -261,10 +276,14 @@ const errorHandler = (error, req, res, _next) => {
     });
   }
 
-  // Default error response
+  // Default error response. Include the error name + message always so the
+  // caller has *some* signal -- "Something went wrong" alone is a debugging
+  // dead end. Full stack stays development-only.
   res.status(500).json({
     error: 'Internal Server Error',
-    message: config.server.env === 'development' ? error.message : 'Something went wrong'
+    name: error.name || 'Error',
+    message: error.message || 'Unknown error',
+    stack: config.server.env === 'development' ? error.stack : undefined
   });
 };
 
