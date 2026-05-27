@@ -18,7 +18,15 @@ class CustomMermaidValidator {
     this.langiumValidator = new LangiumValidator();
     this.validationInstructions = new ValidationInstructions();
     this.autoFixer = new MermaidAutoFixer();
-    this.initializeGrammarParsers();
+    // Capture the init promise so callers can await grammar readiness.
+    // Without this, per-request callers (e.g. MarkdownMermaidFixer constructs
+    // a fresh validator per HTTP request) race the async grammar compile and
+    // see "No compiled parser available for diagram type: flowchart".
+    this.ready = this.initializeGrammarParsers().catch(() => {
+      // Error already logged inside initializeGrammarParsers; swallow here so
+      // `await this.ready` always resolves and downstream code produces a
+      // structured no_parser error instead of an unhandled rejection.
+    });
   }
 
   /**
@@ -167,6 +175,10 @@ class CustomMermaidValidator {
    * @returns {Object} Validation result
    */
   async validateDiagram(diagram, options = {}) {
+    // Make sure grammar parsers are compiled before we touch them. Cheap once
+    // the promise has resolved; load-bearing on the first call of a fresh
+    // validator instance (see constructor comment).
+    if (this.ready) { await this.ready; }
     const startTime = Date.now();
     // Use provided type if available, otherwise detect from content
     const diagramType = diagram.type || this.detectDiagramType(diagram.content);
