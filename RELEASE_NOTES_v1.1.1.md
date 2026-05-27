@@ -21,12 +21,25 @@ After: **4 high** (all in the `jison` runtime parser chain).
 The 4 remaining advisories — `jison`, `jison-lex`, `nomnom`, `underscore` —
 sit in the parser-generator runtime path: `customMermaidValidator` calls
 `grammarCompiler.compileAllGrammars()` at startup, which calls `new
-jison.Parser(grammarContent)`. We accept this risk for v1.1.x; the
-attack surface is parsing of user-supplied diagram source, and the specific
-advisories are prototype-pollution / unbounded-recursion in `underscore` and
-CLI arg parsing in `nomnom` — neither obviously triggerable through the
-validator's surface, but worth a follow-up to lazy-load or migrate to
-`@gerhobbelt/jison`.
+jison.Parser(grammarContent)`.
+
+### Exploitability analysis (why we accept these for v1.1.x)
+
+| Advisory | Vulnerable code path | Reachable through this validator? |
+|---|---|---|
+| `underscore` prototype pollution | `_.template()` with attacker-controlled input | **No.** `jison-lex` uses `_.each`, `_.map`, `_.contains` at parser-build time. `_.template` is not on the validator's request path. |
+| `underscore` unbounded recursion in `_.flatten`/`_.isEqual` | recursive calls on attacker-controlled deeply-nested data | **No.** Validator input is text (Mermaid source), not deeply-nested JSON; parser internals build flat token streams. |
+| `nomnom` DoS / unbounded memory | jison's CLI mode (`jison foo.jison`) | **No.** We call `new jison.Parser(content)` directly; `nomnom` is never instantiated. |
+| `jison` / `jison-lex` parents | inherit from `underscore` / `nomnom` | Same as above. |
+
+The audit numbers are real, but the practical exploitability through the
+validator's HTTP/MCP API surface is negligible — none of the vulnerable code
+paths are reachable from user-supplied diagram input.
+
+### Why we didn't switch upstream
+
+- **`jison-gho`** (Gerhobbelt's fork): introduces *more* advisories (8: 5 mod, 3 high) via its own `yargs-parser` / `core-js` chain, AND its lexer rejects our existing `.jison` grammar files. Net regression.
+- **Refactor to use pre-generated parsers only**: viable but ~2-3 hours of work — `scripts/compile-grammars.js` currently emits malformed CJS modules (literal `module.exports = var parser = ...`) so the generation pipeline needs fixing first. Tracked as a follow-up for v1.2.0.
 
 Notable direct deps with security-relevant fixes:
 

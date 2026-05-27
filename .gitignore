@@ -111,6 +111,7 @@ docs/swagger.json
 .snyk
 security-report.md
 audit-*.json
+!audit-ci.json
 
 # Generated files
 *.svg
