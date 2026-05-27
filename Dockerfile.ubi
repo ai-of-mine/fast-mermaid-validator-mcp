@@ -71,7 +71,7 @@ CMD ["node", "dist/mcp/server-http.js"]
 
 # OpenShift / Kubernetes / OCI metadata
 LABEL name="fast-mermaid-validator-mcp" \
-      version="1.3.0-beta.2" \
+      version="1.3.0" \
       summary="Fast Mermaid Validator MCP — Streamable HTTP transport (stateless)" \
       description="High-performance Mermaid diagram validator exposed as an MCP Streamable HTTP server (spec-compliant, stateless). Default port 8080. Optional REST API on 8000 via override." \
       vendor="ai-of-mine" \
