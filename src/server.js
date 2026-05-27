@@ -281,6 +281,84 @@ class Server {
   }
 }
 
+// Startup banners — written via console.log/console.error rather than the
+// winston logger so they print regardless of LOG_LEVEL (default is 'warn').
+// HTTP variants → stdout; stdio variant → stderr (stdout is the MCP protocol
+// channel and must not be polluted).
+function bannerHttp(out, label, port, host) {
+  const url = `http://${host}:${port}`;
+  const lines = [
+    '',
+    `🤖  ${label}`,
+    `    transport: streamable-http   mode: ${process.env.MCP_STATEFUL === 'true' ? 'stateful' : 'stateless'}`,
+    '',
+    `    /mcp     ${url}/mcp        (POST/GET/DELETE — JSON-RPC + SSE)`,
+    `    /health  ${url}/health     (liveness)`,
+    `    /info    ${url}/info       (server metadata)`,
+    '',
+    '    MCP client config (e.g. Claude Code .mcp.json):',
+    '      {',
+    '        "mcpServers": {',
+    '          "mermaid-validator": {',
+    '            "type": "http",',
+    `            "url": "${url}/mcp"`,
+    '          }',
+    '        }',
+    '      }',
+    '',
+    '    Verify (in another terminal):',
+    `      curl -s ${url}/info`,
+    `      curl -s -X POST ${url}/mcp \\`,
+    "        -H 'Content-Type: application/json' \\",
+    "        -H 'Accept: application/json, text/event-stream' \\",
+    "        -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\",\"id\":1}'",
+    '',
+    '    Env vars: PORT, MCP_HTTP_PORT, MCP_HTTP_HOST, MCP_STATEFUL, LOG_LEVEL',
+    '    Stop:     Ctrl-C',
+    ''
+  ];
+  out.write(lines.join('\n'));
+}
+function bannerStdio(label) {
+  const lines = [
+    '',
+    `🤖  ${label}`,
+    '    transport: stdio',
+    '    (stdout is the MCP protocol channel — banner is on stderr)',
+    '',
+    '    Claude Code / Desktop config:',
+    '      {',
+    '        "mcpServers": {',
+    '          "mermaid-validator": {',
+    '            "command": "npx",',
+    '            "args": ["-y", "@ai-of-mine/fast-mermaid-validator-mcp", "--mcp-stdio"]',
+    '          }',
+    '        }',
+    '      }',
+    '',
+    '    Stop: Ctrl-C',
+    ''
+  ];
+  process.stderr.write(lines.join('\n'));
+}
+function bannerRest(port, host) {
+  const url = `http://${host}:${port}`;
+  const lines = [
+    '',
+    '🌐  Mermaid Validator REST API',
+    '',
+    `    Base URL: ${url}/api/v1`,
+    `      POST  ${url}/api/v1/validate         (JSON body)`,
+    `      POST  ${url}/api/v1/upload/file       (multipart upload)`,
+    `      GET   ${url}/api/v1/health           (liveness)`,
+    '',
+    '    Env vars: PORT, HOST, LOG_LEVEL, NODE_ENV',
+    '    Stop:     Ctrl-C',
+    ''
+  ];
+  process.stdout.write(lines.join('\n'));
+}
+
 // Start server if this file is run directly
 if (require.main === module) {
   const args = process.argv.slice(2);
@@ -304,15 +382,18 @@ if (require.main === module) {
   // behind `require.main === module`, so we can't `require()` them — we have
   // to instantiate the exported class directly and call its start method.
   if (args.includes('--mcp-http')) {
-    logger.info('Starting MCP HTTP server...', { port: process.env.MCP_HTTP_PORT || '8080' });
+    const port = process.env.MCP_HTTP_PORT || '8080';
+    const host = process.env.MCP_HTTP_HOST || '0.0.0.0';
     const HTTPServer = require('../dist/mcp/server-http.js').default
       || require('../dist/mcp/server-http.js').MermaidValidatorHTTPServer;
     const mcp = new HTTPServer();
     process.on('SIGINT', async () => { await mcp.shutdown(); process.exit(0); });
     process.on('SIGTERM', async () => { await mcp.shutdown(); process.exit(0); });
-    mcp.startHttp().catch((err) => { logger.logError(err, { context: 'cli-mcp-http' }); process.exit(1); });
+    mcp.startHttp().then(() => {
+      bannerHttp(process.stdout, 'Mermaid Validator MCP — Streamable HTTP', port, host === '0.0.0.0' ? 'localhost' : host);
+    }).catch((err) => { logger.logError(err, { context: 'cli-mcp-http' }); process.exit(1); });
   } else if (args.includes('--mcp-stdio')) {
-    logger.info('Starting MCP stdio server...');
+    bannerStdio('Mermaid Validator MCP — stdio');
     const StdioServer = require('../dist/mcp/server.js').default
       || require('../dist/mcp/server.js').MermaidValidatorMCPServer;
     const mcp = new StdioServer();
@@ -320,14 +401,17 @@ if (require.main === module) {
     process.on('SIGTERM', async () => { await mcp.shutdown(); process.exit(0); });
     mcp.startStdio().catch((err) => { logger.logError(err, { context: 'cli-mcp-stdio' }); process.exit(1); });
   } else if (args.includes('--mcp-secure')) {
-    logger.info('Starting MCP secure server...', { port: process.env.MCP_HTTP_PORT || '8080' });
+    const port = process.env.MCP_HTTP_PORT || '8080';
+    const host = process.env.MCP_HTTP_HOST || '0.0.0.0';
     const SecureServer = require('../dist/mcp/server-secure.js').default
       || require('../dist/mcp/server-secure.js').SecureMermaidValidatorMCPServer;
     const mcp = new SecureServer();
     process.on('SIGINT', async () => { await mcp.shutdown(); process.exit(0); });
     process.on('SIGTERM', async () => { await mcp.shutdown(); process.exit(0); });
     const starter = typeof mcp.start === 'function' ? mcp.start.bind(mcp) : mcp.startHttp.bind(mcp);
-    starter().catch((err) => { logger.logError(err, { context: 'cli-mcp-secure' }); process.exit(1); });
+    starter().then(() => {
+      bannerHttp(process.stdout, 'Mermaid Validator MCP — Secure Streamable HTTP', port, host === '0.0.0.0' ? 'localhost' : host);
+    }).catch((err) => { logger.logError(err, { context: 'cli-mcp-secure' }); process.exit(1); });
   } else if (args.includes('--help') || args.includes('-h')) {
     console.log(`
 Mermaid Validator MCP - Multi-mode Server
@@ -382,7 +466,11 @@ Documentation:
   } else {
     // Default: Start REST API server
     const server = new Server();
-    server.start().catch((error) => {
+    server.start().then(() => {
+      const restPort = process.env.PORT || (config && config.server && config.server.port) || '8000';
+      const restHost = process.env.HOST || (config && config.server && config.server.host) || '0.0.0.0';
+      bannerRest(restPort, restHost === '0.0.0.0' ? 'localhost' : restHost);
+    }).catch((error) => {
       logger.logError(error, { context: 'server_startup_error' });
       process.exit(1);
     });
