@@ -52,8 +52,54 @@ const upload = multer({
 });
 
 /**
- * Direct diagram validation endpoint
- * POST /api/v1/validate
+ * @swagger
+ * /validate:
+ *   post:
+ *     tags: [validation]
+ *     summary: Validate one or more Mermaid diagrams (JSON body)
+ *     description: Direct validation against the custom Jison/Langium grammar parser. No file upload required.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [diagrams]
+ *             properties:
+ *               diagrams:
+ *                 type: array
+ *                 items: { $ref: '#/components/schemas/DiagramInput' }
+ *               options:
+ *                 type: object
+ *                 properties:
+ *                   timeout: { type: integer, description: Per-diagram timeout in ms }
+ *           examples:
+ *             flowchart:
+ *               summary: One flowchart
+ *               value:
+ *                 diagrams:
+ *                   - id: diagram_1
+ *                     content: "flowchart TD\n  A-->B"
+ *     responses:
+ *       200:
+ *         description: Validation completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 requestId: { type: string, format: uuid }
+ *                 timestamp: { type: string, format: date-time }
+ *                 processingTime: { type: integer }
+ *                 validator: { type: string, example: custom_grammar_parser }
+ *                 totalDiagrams: { type: integer }
+ *                 validDiagrams: { type: integer }
+ *                 invalidDiagrams: { type: integer }
+ *                 results:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/DiagramResult' }
+ *       400: { description: Bad input (e.g., too many diagrams), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+ *       500: { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
  */
 router.post(
   '/validate',
@@ -108,8 +154,67 @@ router.post(
 );
 
 /**
- * File upload validation endpoint
- * POST /api/v1/upload/file
+ * @swagger
+ * /upload/file:
+ *   post:
+ *     tags: [validation]
+ *     summary: Validate Mermaid diagrams inside uploaded files
+ *     description: Accepts one or more markdown (.md) files (and ZIP archives) via multipart upload, extracts all Mermaid code blocks, and validates each.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file:
+ *                 type: array
+ *                 items: { type: string, format: binary }
+ *                 description: One or more files. Field name MUST be "file".
+ *               timeout:
+ *                 type: integer
+ *                 description: Per-diagram timeout override (ms)
+ *     responses:
+ *       200:
+ *         description: Validation completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 requestId: { type: string, format: uuid }
+ *                 timestamp: { type: string, format: date-time }
+ *                 processingTime: { type: integer }
+ *                 validator: { type: string }
+ *                 totalFiles: { type: integer }
+ *                 processedFiles: { type: integer }
+ *                 totalDiagrams: { type: integer }
+ *                 validDiagrams: { type: integer }
+ *                 invalidDiagrams: { type: integer }
+ *                 fileProcessing:
+ *                   type: object
+ *                   properties:
+ *                     totalFiles: { type: integer }
+ *                     processedFiles: { type: integer }
+ *                     errors: { type: array, items: { type: object } }
+ *                     processingTime: { type: integer }
+ *                 files:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       fileName: { type: string }
+ *                       size: { type: integer }
+ *                       totalDiagrams: { type: integer }
+ *                       validDiagrams: { type: integer }
+ *                       invalidDiagrams: { type: integer }
+ *                       results: { type: array, items: { $ref: '#/components/schemas/DiagramResult' } }
+ *                       errors: { type: array, items: { type: object } }
+ *                 validationOptions:
+ *                   type: object
+ *       400: { description: Too many diagrams, or rejected file type, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+ *       500: { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
  */
 router.post(
   '/upload/file',
@@ -292,17 +397,50 @@ router.post(
 );
 
 /**
- * File upload auto-fix endpoint
- * POST /api/v1/upload/fix
- *
- * Multipart upload variant of POST /api/v1/markdown/fix. Accept .md / .mmd /
- * .txt as `file` form field, run the auto-fixer over each Mermaid block, and
- * return the rewritten file content plus per-diagram statistics.
- *
- * Equivalent to:
- *   jq -Rs '{content:.}' file.md | curl -X POST .../api/v1/markdown/fix --data-binary @-
- * but ergonomic for tooling that wants a plain `-F file=@...` upload, and
- * mirrors the existing /api/v1/upload/file (validate-only) endpoint.
+ * @swagger
+ * /upload/fix:
+ *   post:
+ *     tags: [validation]
+ *     summary: Auto-fix Mermaid diagrams in an uploaded file
+ *     description: Multipart-upload variant of POST /markdown/fix. Accepts a single .md / .mmd / .txt file, runs the auto-fixer over each Mermaid block, and returns the rewritten file content plus per-diagram statistics. Raw .mmd (no fences) is wrapped/unwrapped transparently.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: A single markdown or mmd file
+ *               options:
+ *                 type: string
+ *                 description: Optional JSON-encoded fixer overrides
+ *     responses:
+ *       200:
+ *         description: File processed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 requestId: { type: string, format: uuid }
+ *                 timestamp: { type: string, format: date-time }
+ *                 processingTime: { type: integer }
+ *                 fileName: { type: string }
+ *                 fileSize: { type: integer }
+ *                 mimeType: { type: string }
+ *                 wasMarkdown:
+ *                   type: boolean
+ *                   description: False if the input was raw mmd and the server wrapped it in a fence
+ *                 fixedContent: { type: string }
+ *                 statistics: { type: object }
+ *                 diagrams: { type: array, items: { type: object } }
+ *       400: { description: Missing file, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+ *       500: { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
  */
 router.post(
   '/upload/fix',
@@ -392,8 +530,32 @@ router.post(
 );
 
 /**
- * Get validation statistics
- * GET /api/v1/validate/stats
+ * @swagger
+ * /stats:
+ *   get:
+ *     tags: [validation]
+ *     summary: Validator capabilities and runtime limits
+ *     description: Lists supported diagram types, upload/validation limits, and feature flags.
+ *     responses:
+ *       200:
+ *         description: Stats payload
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 supportedDiagramTypes: { type: array, items: { type: string } }
+ *                 limits:
+ *                   type: object
+ *                   properties:
+ *                     maxFileSize: { type: integer }
+ *                     maxFiles: { type: integer }
+ *                     maxDiagramsPerFile: { type: integer }
+ *                     maxTotalDiagrams: { type: integer }
+ *                     validationTimeout: { type: integer }
+ *                 features: { type: object, additionalProperties: true }
+ *                 validator: { type: object, additionalProperties: true }
+ *                 timestamp: { type: string, format: date-time }
  */
 router.get('/stats', async (req, res) => {
   try {

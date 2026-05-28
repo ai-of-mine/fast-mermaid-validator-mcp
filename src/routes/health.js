@@ -12,8 +12,31 @@ const logger = require('../utils/logger');
 const router = express.Router();
 
 /**
- * Basic health check endpoint
- * GET /api/v1/health
+ * @swagger
+ * /health:
+ *   get:
+ *     tags: [health]
+ *     summary: Basic health check
+ *     description: Returns overall service status with memory, disk (host only), and process checks.
+ *     responses:
+ *       200:
+ *         description: Service is healthy or degraded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, enum: [healthy, degraded] }
+ *                 timestamp: { type: string, format: date-time }
+ *                 uptime: { type: number, description: Process uptime in seconds }
+ *                 version: { type: string }
+ *                 environment: { type: string }
+ *                 checks: { type: object, additionalProperties: true }
+ *       503:
+ *         description: Service is unhealthy
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
  */
 router.get('/', async (req, res) => {
   try {
@@ -41,8 +64,15 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * Detailed health check endpoint
- * GET /api/v1/health/detailed
+ * @swagger
+ * /health/detailed:
+ *   get:
+ *     tags: [health]
+ *     summary: Detailed health check
+ *     description: Same as /health, plus system, memory, and process detail.
+ *     responses:
+ *       200: { description: Service is healthy or degraded (with detail payload) }
+ *       503: { description: Service is unhealthy }
  */
 router.get('/detailed', async (req, res) => {
   try {
@@ -63,8 +93,22 @@ router.get('/detailed', async (req, res) => {
 });
 
 /**
- * Liveness probe endpoint (for Kubernetes)
- * GET /api/v1/health/live
+ * @swagger
+ * /health/live:
+ *   get:
+ *     tags: [health]
+ *     summary: Kubernetes liveness probe
+ *     description: Always returns 200 if the process is responsive. Use as livenessProbe.
+ *     responses:
+ *       200:
+ *         description: Process is alive
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status: { type: string, example: alive }
+ *                 timestamp: { type: string, format: date-time }
  */
 router.get('/live', (req, res) => {
   res.status(200).json({
@@ -74,8 +118,15 @@ router.get('/live', (req, res) => {
 });
 
 /**
- * Readiness probe endpoint (for Kubernetes)
- * GET /api/v1/health/ready
+ * @swagger
+ * /health/ready:
+ *   get:
+ *     tags: [health]
+ *     summary: Kubernetes readiness probe
+ *     description: Returns 200 only when the service can accept requests (temp dir accessible, process warm).
+ *     responses:
+ *       200: { description: Ready to serve requests }
+ *       503: { description: Not ready }
  */
 router.get('/ready', async (req, res) => {
   try {

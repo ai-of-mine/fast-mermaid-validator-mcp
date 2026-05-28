@@ -13,8 +13,52 @@ const logger = require('../utils/logger');
 const fixer = require('../services/fixerInstance');
 
 /**
- * POST /api/markdown/fix
- * Fix all Mermaid diagrams in markdown content
+ * @swagger
+ * /markdown/fix:
+ *   post:
+ *     tags: [markdown]
+ *     summary: Auto-fix all Mermaid diagrams inside a markdown document
+ *     description: Extracts every fenced ```mermaid block, attempts iterative auto-fix (up to 5 passes per diagram), and returns the rewritten markdown plus statistics.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [content]
+ *             properties:
+ *               content: { type: string, description: Full markdown body }
+ *               options: { type: object, description: Optional fixer overrides, additionalProperties: true }
+ *     responses:
+ *       200:
+ *         description: Markdown processed (success may be false if some diagrams could not be fixed)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 fixedContent: { type: string }
+ *                 statistics:
+ *                   type: object
+ *                   properties:
+ *                     totalDiagrams: { type: integer }
+ *                     fixedDiagrams: { type: integer }
+ *                     failedDiagrams: { type: integer }
+ *                     totalIterations: { type: integer }
+ *                     processingTime: { type: integer }
+ *                 diagrams:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: string }
+ *                       success: { type: boolean }
+ *                       wasFixed: { type: boolean }
+ *                       iterations: { type: integer }
+ *                 report: { type: string }
+ *       400: { description: Missing content, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+ *       500: { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
  */
 router.post('/fix', async (req, res) => {
   try {
@@ -58,8 +102,34 @@ router.post('/fix', async (req, res) => {
 });
 
 /**
- * POST /api/markdown/validate
- * Validate all Mermaid diagrams in markdown without fixing
+ * @swagger
+ * /markdown/validate:
+ *   post:
+ *     tags: [markdown]
+ *     summary: Validate (no fixing) all Mermaid diagrams in a markdown document
+ *     description: Extracts every fenced ```mermaid block and validates each. Does not modify content.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [content]
+ *             properties:
+ *               content: { type: string, description: Full markdown body }
+ *           examples:
+ *             tiny:
+ *               summary: One inline flowchart
+ *               value:
+ *                 content: "```mermaid\nflowchart TD\n  A-->B\n```"
+ *     responses:
+ *       200:
+ *         description: Validation completed (success=true iff invalidDiagrams===0)
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/MarkdownValidateResponse' }
+ *       400: { description: Missing content, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+ *       500: { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
  */
 router.post('/validate', async (req, res) => {
   try {

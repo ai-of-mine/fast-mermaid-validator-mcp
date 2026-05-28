@@ -132,24 +132,81 @@ class Server {
       const swaggerJsdoc = require('swagger-jsdoc');
       const swaggerUi = require('swagger-ui-express');
 
+      const pkg = require('../package.json');
       const options = {
         definition: {
           openapi: '3.0.0',
           info: {
             title: 'Mermaid Validator API',
-            version: '1.0.0',
-            description: 'High-performance API for validating Mermaid diagrams',
-            contact: {
-              name: 'API Support',
-              email: 'support@example.com'
-            }
+            version: pkg.version,
+            description: pkg.description,
+            contact: pkg.author && typeof pkg.author === 'object'
+              ? { name: pkg.author.name, email: pkg.author.email }
+              : undefined,
+            license: pkg.license ? { name: pkg.license } : undefined
           },
           servers: [
             {
               url: `http://localhost:${config.server.port}/api/v1`,
-              description: 'Development server'
+              description: 'Local development server'
             }
-          ]
+          ],
+          tags: [
+            { name: 'health', description: 'Liveness, readiness, and detailed health probes' },
+            { name: 'validation', description: 'Validate Mermaid diagrams (JSON or multipart upload)' },
+            { name: 'markdown', description: 'Extract, validate, and auto-fix Mermaid diagrams inside markdown' }
+          ],
+          components: {
+            schemas: {
+              Error: {
+                type: 'object',
+                properties: {
+                  error: { type: 'string' },
+                  message: { type: 'string' },
+                  requestId: { type: 'string', format: 'uuid' },
+                  timestamp: { type: 'string', format: 'date-time' }
+                },
+                required: ['error']
+              },
+              DiagramInput: {
+                type: 'object',
+                description: 'A single diagram to validate',
+                properties: {
+                  id: { type: 'string', example: 'diagram_1' },
+                  content: { type: 'string', example: 'flowchart TD\n  A-->B' },
+                  type: { type: 'string', example: 'flowchart', nullable: true }
+                },
+                required: ['content']
+              },
+              ValidationError: {
+                type: 'object',
+                properties: {
+                  type: { type: 'string', example: 'syntax_error' },
+                  message: { type: 'string' },
+                  line: { type: 'integer', nullable: true }
+                }
+              },
+              DiagramResult: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  valid: { type: 'boolean' },
+                  errors: { type: 'array', items: { $ref: '#/components/schemas/ValidationError' } },
+                  warnings: { type: 'array', items: { $ref: '#/components/schemas/ValidationError' } }
+                }
+              },
+              MarkdownValidateResponse: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean' },
+                  totalDiagrams: { type: 'integer' },
+                  validDiagrams: { type: 'integer' },
+                  invalidDiagrams: { type: 'integer' },
+                  results: { type: 'array', items: { $ref: '#/components/schemas/DiagramResult' } }
+                }
+              }
+            }
+          }
         },
         apis: ['./src/routes/*.js']
       };
