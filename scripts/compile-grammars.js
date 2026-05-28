@@ -35,11 +35,17 @@ function ensureDir(dir) {
 function compileJisonGrammars() {
   log('\n=== Compiling Jison Grammars ===', COLORS.BLUE);
   
+  // In v1.5.0 the grammar set was split into v10/ and v11/ subdirs so callers
+  // can opt in to either via the `mermaidVersion` request option. This script
+  // compiles BOTH so the per-version GrammarCompiler instances find them on
+  // boot. Generated outputs live in src/generated/jison/<version>/.
   const grammarsDir = path.join(__dirname, '../src/services/grammars');
   const outputDir = path.join(__dirname, '../src/generated/jison');
   ensureDir(outputDir);
-  
-  const jisonFiles = [
+  ensureDir(path.join(outputDir, 'v10'));
+  ensureDir(path.join(outputDir, 'v11'));
+
+  const v10Files = [
     'flowchart/flow.jison',
     'sequence/sequenceDiagram.jison',
     'class/classDiagram.jison',
@@ -57,34 +63,69 @@ function compileJisonGrammars() {
     'quadrant/quadrant.jison',
     'timeline/timeline.jison'
   ];
+  const v11Files = [
+    'flowchart/flow.jison',
+    'sequence/sequenceDiagram.jison',
+    'class/classDiagram.jison',
+    'state/stateDiagram.jison',
+    'er/erDiagram.jison',
+    'gantt/gantt.jison',
+    'user-journey/journey.jison',
+    'requirement/requirementDiagram.jison',
+    'sankey/sankey.jison',
+    'xychart/xychart.jison',
+    'kanban/kanban.jison',
+    'block/block.jison',
+    'c4/c4Diagram.jison',
+    'mindmap/mindmap.jison',
+    'quadrant-chart/quadrant.jison',
+    'timeline/timeline.jison',
+    // New in v11
+    'ishikawa/ishikawa.jison',
+    'venn/venn.jison'
+  ];
+  // The compileGrammars loop below originally walked a single list; we keep
+  // it iterating one flat list of {file, version} entries so the
+  // "successCount / failureCount" reporting stays consistent.
+  const jisonFiles = [
+    ...v10Files.map((f) => ({ file: 'v10/' + f, name: path.basename(f, '.jison'), version: 'v10' })),
+    ...v11Files.map((f) => ({ file: 'v11/' + f, name: path.basename(f, '.jison'), version: 'v11' }))
+  ];
   
   let successCount = 0;
   let failureCount = 0;
   
-  jisonFiles.forEach(file => {
+  jisonFiles.forEach(entry => {
     try {
+      const file = typeof entry === 'string' ? entry : entry.file;
+      const grammarName = (typeof entry === 'string') ? path.basename(file, '.jison') : entry.name;
       const grammarPath = path.join(grammarsDir, file);
-      const grammarName = path.basename(file, '.jison');
-      const outputPath = path.join(outputDir, `${grammarName}.js`);
-      
+      // Output is namespaced by version so the per-version GrammarCompiler
+      // can find pre-generated parsers without colliding (flow.js exists in
+      // both v10 and v11).
+      const versionDir = (typeof entry === 'string') ? '' : (entry.version || '');
+      const outputPath = versionDir
+        ? path.join(outputDir, versionDir, `${grammarName}.js`)
+        : path.join(outputDir, `${grammarName}.js`);
+
       log(`Compiling ${file}...`, COLORS.YELLOW);
-      
+
       const grammarContent = fs.readFileSync(grammarPath, 'utf8');
       const parser = new jison.Parser(grammarContent);
       const parserSource = parser.generate();
-      
+
       // Wrap in module exports
       const moduleSource = `
 // Generated from ${file}
 // Do not edit manually
 module.exports = ${parserSource};
 `;
-      
+
       fs.writeFileSync(outputPath, moduleSource);
       log(`  ✓ Generated ${grammarName}.js`, COLORS.GREEN);
       successCount++;
     } catch (error) {
-      log(`  ✗ Failed to compile ${file}: ${error.message}`, COLORS.RED);
+      log(`  ✗ Failed to compile ${typeof entry === 'string' ? entry : entry.file}: ${error.message}`, COLORS.RED);
       failureCount++;
     }
   });
