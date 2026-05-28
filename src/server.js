@@ -158,8 +158,8 @@ class Server {
         '',
         '### Notes',
         '',
-        '- `%%` line-comments are stripped before parsing.',
-        '- `%%{init: ...}%%` theme/layout directives are stripped before parsing (they are renderer metadata, not syntax — they do not affect whether the diagram is valid Mermaid).',
+        '- `%%` line-comments are recognized by the grammars and ignored.',
+        '- `%%{init: ...}%%` theme/layout directives are recognized and ignored (they are renderer metadata, not syntax).',
         '- Grammars are vendored snapshots, not a live wrapper around upstream `mermaid`.'
       ].join('\n');
 

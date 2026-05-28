@@ -231,22 +231,15 @@ class CustomMermaidValidator {
     if (this.ready) { await this.ready; }
     const startTime = Date.now();
 
-    // Strip Mermaid %% line-comments AND %%{...}%% directives before parsing.
-    // - Line comments (`%% something`): 5 of 16 grammars (flow, erDiagram,
-    //   mindmap, c4, quadrant) lack the upstream skip-comment rule, so leaving
-    //   them crashes the parser. JS pre-pass is one change vs patching 5
-    //   grammars and recompiling.
-    // - Theme directives (`%%{init: {...}}%%`): these are renderer metadata
-    //   (theme/layout), not syntax. None of our jison grammars handle them at
-    //   the lexer level. Upstream Mermaid extracts directives in a separate
-    //   pass before parsing — we do the same. The directive content is
-    //   discarded for validation purposes (it does not change whether the
-    //   diagram is syntactically valid; only how it would render).
-    if (diagram.content && typeof diagram.content === 'string') {
-      diagram.content = diagram.content
-        .replace(/^\s*%%\{[\s\S]*?\}%%[^\n]*\n?/gm, '') // directives first (more specific)
-        .replace(/^\s*%%(?!\{)[^\n]*\n?/gm, '');         // then plain %% comments
-    }
+    // Note: in v1.4.0 we stripped %% line-comments and %%{...}%% directives
+    // in JS before passing to the parser, because flow.jison and
+    // erDiagram.jison lacked skip-comment rules. v1.4.1 adds those rules at
+    // the grammar level (mindmap/c4/quadrant already had them — the previous
+    // false-positive there was the route-level type-detector bug). The JS
+    // pre-pass is no longer needed and was removed for two reasons:
+    //   (a) it modifies user-provided content silently (line numbers shift
+    //       in parse errors, which was misleading)
+    //   (b) it didn't handle inline `text %% comment` — the grammar rule does
 
     // Use provided type if available, otherwise detect from content.
     // detectDiagramType returns null for content we can't identify; surface
