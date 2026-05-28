@@ -93,8 +93,18 @@ class CustomMermaidValidator {
    * @returns {string} Detected diagram type
    */
   detectDiagramType(content) {
-    // First check for explicit diagram type declarations
-    const firstLine = content.split('\n')[0].trim().toLowerCase();
+    // Find the first "real" line — skip blank lines, %%{init:...}%% theme
+    // directives (these are NOT the diagram-type marker), and %% comments
+    // that survived the strip. Without this, `%%{init: {...}}%%\nflowchart TD`
+    // returned null from detectDiagramType because line[0] was the directive.
+    let firstLine = '';
+    for (const raw of content.split('\n')) {
+      const line = raw.trim();
+      if (!line) continue;
+      if (line.startsWith('%%')) continue; // covers both %%{init:...}%% and %% comments
+      firstLine = line.toLowerCase();
+      break;
+    }
     
     const explicitTypes = {
       'sequencediagram': 'sequenceDiagram',
@@ -221,15 +231,21 @@ class CustomMermaidValidator {
     if (this.ready) { await this.ready; }
     const startTime = Date.now();
 
-    // Strip Mermaid %% line-comments before parsing. Our embedded jison
-    // grammars inherited only partial comment-handling from upstream Mermaid
-    // — 5 of 16 grammars (flow, erDiagram, mindmap, c4Diagram, quadrant) flag
-    // a leading-%% line as a syntax error even though upstream Mermaid renders
-    // them fine. One JS pre-pass is one change instead of patching 5 grammars
-    // and recompiling their parsers. The `(?!\{)` exclusion preserves
-    // %%{init:...}%% directives, which are NOT comments and matter for theming.
+    // Strip Mermaid %% line-comments AND %%{...}%% directives before parsing.
+    // - Line comments (`%% something`): 5 of 16 grammars (flow, erDiagram,
+    //   mindmap, c4, quadrant) lack the upstream skip-comment rule, so leaving
+    //   them crashes the parser. JS pre-pass is one change vs patching 5
+    //   grammars and recompiling.
+    // - Theme directives (`%%{init: {...}}%%`): these are renderer metadata
+    //   (theme/layout), not syntax. None of our jison grammars handle them at
+    //   the lexer level. Upstream Mermaid extracts directives in a separate
+    //   pass before parsing — we do the same. The directive content is
+    //   discarded for validation purposes (it does not change whether the
+    //   diagram is syntactically valid; only how it would render).
     if (diagram.content && typeof diagram.content === 'string') {
-      diagram.content = diagram.content.replace(/^\s*%%(?!\{)[^\n]*\n?/gm, '');
+      diagram.content = diagram.content
+        .replace(/^\s*%%\{[\s\S]*?\}%%[^\n]*\n?/gm, '') // directives first (more specific)
+        .replace(/^\s*%%(?!\{)[^\n]*\n?/gm, '');         // then plain %% comments
     }
 
     // Use provided type if available, otherwise detect from content.

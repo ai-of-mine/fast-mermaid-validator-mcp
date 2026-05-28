@@ -45,7 +45,7 @@ const apiDescription = [
   '### Notes',
   '',
   '- `%%` line-comments are stripped before parsing.',
-  '- `%%{init: ...}%%` theme directives are preserved.',
+  '- `%%{init: ...}%%` theme/layout directives are stripped before parsing (they are renderer metadata, not syntax — they do not affect whether the diagram is valid Mermaid).',
   '- Grammars are vendored snapshots, not a live wrapper around upstream `mermaid`.'
 ].join('\n');
 
