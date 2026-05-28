@@ -477,14 +477,18 @@ class CustomMermaidValidator {
       results.push(result);
     }
 
-    // Calculate summary
-    const validDiagrams = results.filter(r => r.valid).length;
-    const invalidDiagrams = results.length - validDiagrams;
+    // Honest summary: strict-true vs strict-false vs null (unsupported).
+    // The old `results.length - validDiagrams` rolled `null` (unsupported)
+    // into the invalid count — same false-negative shape we hit elsewhere.
+    const validDiagrams = results.filter(r => r.valid === true).length;
+    const invalidDiagrams = results.filter(r => r.valid === false).length;
+    const unsupportedDiagrams = results.filter(r => r.valid === null).length;
 
     const summary = {
       totalDiagrams: results.length,
       validDiagrams,
       invalidDiagrams,
+      unsupportedDiagrams,
       results,
       processingTime: Date.now() - startTime,
       validator: 'real_jison_grammar_parsers'

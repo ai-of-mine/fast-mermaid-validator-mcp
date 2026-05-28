@@ -133,13 +133,41 @@ class Server {
       const swaggerUi = require('swagger-ui-express');
 
       const pkg = require('../package.json');
+      // Keep this description block in sync with scripts/generate-openapi.js.
+      const apiDescription = [
+        pkg.description,
+        '',
+        '## Supported diagram types',
+        '',
+        'This validator parses **vendored snapshots** of Mermaid\'s jison and langium grammars — it is NOT a live wrapper around the upstream `mermaid` npm package. The list of supported types changes when those grammar files are regenerated.',
+        '',
+        '**Call `GET /api/v1/capabilities` for the live, authoritative list** of types with working parsers. Currently ~32 types validate; a couple (`zenuml`, `exampleDiagram`) are declared keywords but have no parser — they return `valid: null, status: "unsupported"` rather than a misleading parse error.',
+        '',
+        '## Validation result semantics (tri-state)',
+        '',
+        'Every per-diagram result has `valid: true | false | null` matched by a `status` string:',
+        '- **`valid: true`,  `status: "validated"`**   — parser ran, content was clean',
+        '- **`valid: false`, `status: "invalid"`**     — parser ran, content had syntax errors',
+        '- **`valid: null`,  `status: "unsupported"`** — no parser available; we couldn\'t check',
+        '',
+        'Callers gating on `valid !== true` still get conservative "don\'t ship" behavior for both `false` and `null`. Summary fields (`validDiagrams`, `invalidDiagrams`, `unsupportedDiagrams`) count strict matches.',
+        '',
+        '## Caveats',
+        '',
+        '- `%%` line-comments are stripped before parsing (10 of 16 jison grammars lack the upstream skip-comment rule).',
+        '- `%%{init: ...}%%` theme directives are preserved (not treated as comments).',
+        '- Some recent upstream Mermaid features may not be reflected — grammars are vendored snapshots.',
+        '- Parser runtimes: `jison ^0.4.18`, `langium ^4.2.4`.',
+        ''
+      ].join('\n');
+
       const options = {
         definition: {
           openapi: '3.0.0',
           info: {
             title: 'Mermaid Validator API',
             version: pkg.version,
-            description: pkg.description,
+            description: apiDescription,
             contact: pkg.author && typeof pkg.author === 'object'
               ? { name: pkg.author.name, email: pkg.author.email }
               : undefined,

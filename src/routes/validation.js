@@ -251,6 +251,7 @@ router.post(
           totalDiagrams: 0,
           validDiagrams: 0,
           invalidDiagrams: 0,
+          unsupportedDiagrams: 0,
           results: [],
           errors: []
         };
@@ -278,6 +279,7 @@ router.post(
               fileDetail.totalDiagrams = validation.totalDiagrams;
               fileDetail.validDiagrams = validation.validDiagrams;
               fileDetail.invalidDiagrams = validation.invalidDiagrams;
+              fileDetail.unsupportedDiagrams = validation.unsupportedDiagrams || 0;
               fileDetail.results = validation.results;
             }
           } else if (fileInfo.subFiles) {
@@ -315,6 +317,7 @@ router.post(
               fileDetail.totalDiagrams += validation.totalDiagrams;
               fileDetail.validDiagrams += validation.validDiagrams;
               fileDetail.invalidDiagrams += validation.invalidDiagrams;
+              fileDetail.unsupportedDiagrams += validation.unsupportedDiagrams || 0;
               fileDetail.results.push(...validation.results);
             }
           }
@@ -343,23 +346,28 @@ router.post(
         });
       }
 
-      // Calculate overall summary
+      // Calculate overall summary. Sum strict-true / strict-false /
+      // strict-null counts from each file detail; do NOT derive invalid
+      // as (total - valid) because that would roll unsupported diagrams
+      // into the invalid count.
       const totalDiagrams = fileDetailsForResponse.reduce((sum, file) => sum + file.totalDiagrams, 0);
       const validDiagrams = fileDetailsForResponse.reduce((sum, file) => sum + file.validDiagrams, 0);
-      const invalidDiagrams = totalDiagrams - validDiagrams;
+      const invalidDiagrams = fileDetailsForResponse.reduce((sum, file) => sum + file.invalidDiagrams, 0);
+      const unsupportedDiagrams = fileDetailsForResponse.reduce((sum, file) => sum + (file.unsupportedDiagrams || 0), 0);
 
       const response = {
         requestId,
         timestamp: new Date().toISOString(),
         processingTime: Date.now() - startTime,
         validator: 'custom_grammar_parser',
-        
+
         // Overall summary
         totalFiles: fileResults.totalFiles,
         processedFiles: fileResults.processedFiles,
         totalDiagrams,
         validDiagrams,
         invalidDiagrams,
+        unsupportedDiagrams,
         
         // File processing summary
         fileProcessing: {
