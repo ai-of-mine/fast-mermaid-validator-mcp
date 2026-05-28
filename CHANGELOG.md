@@ -4,6 +4,24 @@ All notable changes to `@ai-of-mine/fast-mermaid-validator-mcp` are documented i
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] — 2026-05-28
+
+### Fixed
+
+- **`npx @ai-of-mine/fast-mermaid-validator-mcp` no longer prints `glob@11.1.0` deprecation warning.** Root cause: `swagger-jsdoc@6.x` (and 7.x-rc) declares `glob@11.1.0` as a direct dependency. Our `overrides: { glob: '^13.0.0' }` forces glob@13 in our dev tree, but npm overrides only apply when our package is the root — consumers don't see them. Solution: load the pre-generated `docs/openapi.json` (already shipped) at runtime instead of re-parsing JSDoc with `swagger-jsdoc` on every boot. `swagger-jsdoc` is now devDependencies-only.
+
+### Changed
+
+- `src/server.js#setupSwaggerDocs` now reads `docs/openapi.json` from the package tarball as the primary source. Falls back to `swagger-jsdoc` only if the file is missing (dev environments). The fallback is wrapped so a missing devDep does not crash boot.
+- `swagger-jsdoc` moved from `dependencies` → `devDependencies`.
+- Added `docs/openapi.json` and `CHANGELOG.md` to `package.json.files` so they are present in the published tarball.
+- New `npm run docs:openapi` script — alias for `node scripts/generate-openapi.js`. Run this after route changes to refresh the static spec.
+
+### Bonus
+
+- Faster server cold-start: no longer scans `src/routes/*.js` to assemble the spec on boot.
+- Smaller consumer install tree: dropping `swagger-jsdoc` removes ~30 transitive dependencies from the runtime install.
+
 ## [1.5.1] — 2026-05-28
 
 ### Fixed (v11 grammar coverage: 15/18 → 18/18)
