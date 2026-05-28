@@ -16,6 +16,8 @@ RUN npm ci --omit=dev --no-audit --no-fund --ignore-scripts && \
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 COPY dist/ ./dist/
+# docs/openapi.json — loaded at runtime so /docs works without swagger-jsdoc (v1.5.2+)
+COPY docs/openapi.json ./docs/openapi.json
 
 RUN find /app -type f -name "*.md" -delete
 

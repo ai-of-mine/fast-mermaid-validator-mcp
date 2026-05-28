@@ -28,6 +28,8 @@ RUN npm ci --omit=dev --no-audit --no-fund --ignore-scripts && \
 COPY --chown=nodejs:nodejs src/ ./src/
 COPY --chown=nodejs:nodejs scripts/ ./scripts/
 COPY --chown=nodejs:nodejs dist/ ./dist/
+# docs/openapi.json — loaded at runtime so /docs works without swagger-jsdoc (v1.5.2+)
+COPY --chown=nodejs:nodejs docs/openapi.json ./docs/openapi.json
 
 RUN test -f /app/src/server.js && \
     test -f /app/dist/mcp/server-http.js && \

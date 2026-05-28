@@ -43,6 +43,8 @@ COPY --chown=nodejs:nodejs src/ ./src/
 COPY --chown=nodejs:nodejs scripts/ ./scripts/
 COPY --chown=nodejs:nodejs src/generated/ ./src/generated/
 COPY --chown=nodejs:nodejs src/types/ ./src/types/
+# docs/openapi.json — loaded at runtime so /docs works without swagger-jsdoc (v1.5.2+)
+COPY --chown=nodejs:nodejs docs/openapi.json ./docs/openapi.json
 
 # Create runtime directories and set secure permissions
 RUN mkdir -p tmp logs \
