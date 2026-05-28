@@ -294,13 +294,57 @@ class FileProcessor {
   }
 
   /**
+   * Validate that a file path is safely within the temp directory.
+   * Prevents path traversal attacks (CWE-22).
+   * @param {string} filePath - Path to validate
+   * @returns {string} The validated, resolved absolute path
+   * @throws {Error} If path traversal is detected
+   */
+  async validateSafePath(filePath) {
+    if (!filePath || typeof filePath !== 'string') {
+      throw new Error('Invalid file path: Path must be a non-empty string');
+    }
+
+    const normalizedPath = path.normalize(filePath);
+    const resolvedPath = path.resolve(normalizedPath);
+    const tempDirResolved = path.resolve(this.tempDir);
+
+    // path.relative returns a path starting with '..' if resolvedPath is
+    // outside tempDirResolved -- the canonical traversal-check.
+    const relativePath = path.relative(tempDirResolved, resolvedPath);
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      throw new Error('Invalid file path: Path traversal detected');
+    }
+
+    // Resolve symlinks too -- a symlink inside tempDir that points outside
+    // would otherwise bypass the check above.
+    try {
+      const realPath = await fs.realpath(resolvedPath);
+      const realTempDir = await fs.realpath(tempDirResolved);
+      const realRelativePath = path.relative(realTempDir, realPath);
+      if (realRelativePath.startsWith('..') || path.isAbsolute(realRelativePath)) {
+        throw new Error('Invalid file path: Symlink traversal detected');
+      }
+      return realPath;
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        // File doesn't exist (e.g., cleanup of an already-deleted file).
+        // The resolvedPath check above is still valid.
+        return resolvedPath;
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Read file content
    * @param {string} filePath - Path to file
    * @returns {string} File content
    */
   async readFileContent(filePath) {
     try {
-      return await fs.readFile(filePath, 'utf8');
+      const safePath = await this.validateSafePath(filePath);
+      return await fs.readFile(safePath, 'utf8');
     } catch (error) {
       throw new Error(`Failed to read file: ${error.message}`);
     }
@@ -312,7 +356,8 @@ class FileProcessor {
    */
   async cleanupFile(filePath) {
     try {
-      await fs.unlink(filePath);
+      const safePath = await this.validateSafePath(filePath);
+      await fs.unlink(safePath);
     } catch (error) {
       logger.logError(error, { context: 'file_cleanup', filePath });
     }
@@ -342,6 +387,23 @@ class FileProcessor {
   }
 
   /**
+   * Normalize escaped characters in content.
+   * Handles cases where JSON escape sequences are passed as literal strings
+   * (e.g., when curl sends "flowchart TD\nA-->B" with literal backslash-n).
+   * @param {string} content - Raw content that may contain escaped sequences
+   * @returns {string} Content with normalized newlines and tabs
+   */
+  normalizeEscapedContent(content) {
+    if (!content || typeof content !== 'string') {
+      return content;
+    }
+    return content
+      .replace(/\\n/g, '\n')
+      .replace(/\\t/g, '\t')
+      .replace(/\\r/g, '\r');
+  }
+
+  /**
    * Process direct content (for /validate endpoint)
    * @param {Array} diagrams - Array of diagram objects with content and type
    * @returns {Array} Array of diagram objects
@@ -349,7 +411,7 @@ class FileProcessor {
   processDirectContent(diagrams) {
     return diagrams.map((diagram, index) => ({
       id: `direct_${index + 1}`,
-      content: diagram.content.trim(),
+      content: this.normalizeEscapedContent(diagram.content).trim(),
       type: diagram.type,
       source: 'direct_input'
     }));

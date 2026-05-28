@@ -1,0 +1,896 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Mermaid Validator API",
+    "version": "1.4.0",
+    "description": "High-performance API and Model Context Protocol (MCP) server for validating Mermaid diagrams with comprehensive security features, multiple transport options, and enterprise-grade capabilities",
+    "contact": {
+      "name": "Gregorio Elias Roecker Momm",
+      "email": "gregoriomomm@gmail.com"
+    },
+    "license": {
+      "name": "Apache-2.0"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/api/v1",
+      "description": "Local development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "health",
+      "description": "Liveness, readiness, and detailed health probes"
+    },
+    {
+      "name": "validation",
+      "description": "Validate Mermaid diagrams (JSON or multipart upload)"
+    },
+    {
+      "name": "markdown",
+      "description": "Extract, validate, and auto-fix Mermaid diagrams inside markdown"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "DiagramInput": {
+        "type": "object",
+        "description": "A single diagram to validate",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "diagram_1"
+          },
+          "content": {
+            "type": "string",
+            "example": "flowchart TD\n  A-->B"
+          },
+          "type": {
+            "type": "string",
+            "example": "flowchart",
+            "nullable": true
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "syntax_error"
+          },
+          "message": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "DiagramResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "valid": {
+            "type": "boolean"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          }
+        }
+      },
+      "MarkdownValidateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "totalDiagrams": {
+            "type": "integer"
+          },
+          "validDiagrams": {
+            "type": "integer"
+          },
+          "invalidDiagrams": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiagramResult"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/validate": {
+      "post": {
+        "tags": [
+          "validation"
+        ],
+        "summary": "Validate one or more Mermaid diagrams (JSON body)",
+        "description": "Direct validation against the custom Jison/Langium grammar parser. No file upload required.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "diagrams"
+                ],
+                "properties": {
+                  "diagrams": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/DiagramInput"
+                    }
+                  },
+                  "options": {
+                    "type": "object",
+                    "properties": {
+                      "timeout": {
+                        "type": "integer",
+                        "description": "Per-diagram timeout in ms"
+                      }
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "flowchart": {
+                  "summary": "One flowchart",
+                  "value": {
+                    "diagrams": [
+                      {
+                        "id": "diagram_1",
+                        "content": "flowchart TD\n  A-->B"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "processingTime": {
+                      "type": "integer"
+                    },
+                    "validator": {
+                      "type": "string",
+                      "example": "custom_grammar_parser"
+                    },
+                    "totalDiagrams": {
+                      "type": "integer"
+                    },
+                    "validDiagrams": {
+                      "type": "integer"
+                    },
+                    "invalidDiagrams": {
+                      "type": "integer"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DiagramResult"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad input (e.g.",
+            "too many diagrams)": null,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/upload/file": {
+      "post": {
+        "tags": [
+          "validation"
+        ],
+        "summary": "Validate Mermaid diagrams inside uploaded files",
+        "description": "Accepts one or more markdown (.md) files (and ZIP archives) via multipart upload, extracts all Mermaid code blocks, and validates each.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "description": "One or more files. Field name MUST be \"file\"."
+                  },
+                  "timeout": {
+                    "type": "integer",
+                    "description": "Per-diagram timeout override (ms)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "processingTime": {
+                      "type": "integer"
+                    },
+                    "validator": {
+                      "type": "string"
+                    },
+                    "totalFiles": {
+                      "type": "integer"
+                    },
+                    "processedFiles": {
+                      "type": "integer"
+                    },
+                    "totalDiagrams": {
+                      "type": "integer"
+                    },
+                    "validDiagrams": {
+                      "type": "integer"
+                    },
+                    "invalidDiagrams": {
+                      "type": "integer"
+                    },
+                    "fileProcessing": {
+                      "type": "object",
+                      "properties": {
+                        "totalFiles": {
+                          "type": "integer"
+                        },
+                        "processedFiles": {
+                          "type": "integer"
+                        },
+                        "errors": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "processingTime": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "fileName": {
+                            "type": "string"
+                          },
+                          "size": {
+                            "type": "integer"
+                          },
+                          "totalDiagrams": {
+                            "type": "integer"
+                          },
+                          "validDiagrams": {
+                            "type": "integer"
+                          },
+                          "invalidDiagrams": {
+                            "type": "integer"
+                          },
+                          "results": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/DiagramResult"
+                            }
+                          },
+                          "errors": {
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "validationOptions": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Too many diagrams",
+            "or rejected file type": null,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/upload/fix": {
+      "post": {
+        "tags": [
+          "validation"
+        ],
+        "summary": "Auto-fix Mermaid diagrams in an uploaded file",
+        "description": "Multipart-upload variant of POST /markdown/fix. Accepts a single .md / .mmd / .txt file, runs the auto-fixer over each Mermaid block, and returns the rewritten file content plus per-diagram statistics. Raw .mmd (no fences) is wrapped/unwrapped transparently.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "A single markdown or mmd file"
+                  },
+                  "options": {
+                    "type": "string",
+                    "description": "Optional JSON-encoded fixer overrides"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "requestId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "processingTime": {
+                      "type": "integer"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "fileSize": {
+                      "type": "integer"
+                    },
+                    "mimeType": {
+                      "type": "string"
+                    },
+                    "wasMarkdown": {
+                      "type": "boolean",
+                      "description": "False if the input was raw mmd and the server wrapped it in a fence"
+                    },
+                    "fixedContent": {
+                      "type": "string"
+                    },
+                    "statistics": {
+                      "type": "object"
+                    },
+                    "diagrams": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "tags": [
+          "validation"
+        ],
+        "summary": "Validator capabilities and runtime limits",
+        "description": "Lists supported diagram types, upload/validation limits, and feature flags.",
+        "responses": {
+          "200": {
+            "description": "Stats payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "supportedDiagramTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "limits": {
+                      "type": "object",
+                      "properties": {
+                        "maxFileSize": {
+                          "type": "integer"
+                        },
+                        "maxFiles": {
+                          "type": "integer"
+                        },
+                        "maxDiagramsPerFile": {
+                          "type": "integer"
+                        },
+                        "maxTotalDiagrams": {
+                          "type": "integer"
+                        },
+                        "validationTimeout": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "features": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "validator": {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/markdown/fix": {
+      "post": {
+        "tags": [
+          "markdown"
+        ],
+        "summary": "Auto-fix all Mermaid diagrams inside a markdown document",
+        "description": "Extracts every fenced ```mermaid block, attempts iterative auto-fix (up to 5 passes per diagram), and returns the rewritten markdown plus statistics.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "content"
+                ],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "description": "Full markdown body"
+                  },
+                  "options": {
+                    "type": "object",
+                    "description": "Optional fixer overrides",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Markdown processed (success may be false if some diagrams could not be fixed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "fixedContent": {
+                      "type": "string"
+                    },
+                    "statistics": {
+                      "type": "object",
+                      "properties": {
+                        "totalDiagrams": {
+                          "type": "integer"
+                        },
+                        "fixedDiagrams": {
+                          "type": "integer"
+                        },
+                        "failedDiagrams": {
+                          "type": "integer"
+                        },
+                        "totalIterations": {
+                          "type": "integer"
+                        },
+                        "processingTime": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "diagrams": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "success": {
+                            "type": "boolean"
+                          },
+                          "wasFixed": {
+                            "type": "boolean"
+                          },
+                          "iterations": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "report": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/markdown/validate": {
+      "post": {
+        "tags": [
+          "markdown"
+        ],
+        "summary": "Validate (no fixing) all Mermaid diagrams in a markdown document",
+        "description": "Extracts every fenced ```mermaid block and validates each. Does not modify content.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "content"
+                ],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "description": "Full markdown body"
+                  }
+                }
+              },
+              "examples": {
+                "tiny": {
+                  "summary": "One inline flowchart",
+                  "value": {
+                    "content": "```mermaid\nflowchart TD\n  A-->B\n```"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation completed (success=true iff invalidDiagrams===0)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkdownValidateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Basic health check",
+        "description": "Returns overall service status with memory, disk (host only), and process checks.",
+        "responses": {
+          "200": {
+            "description": "Service is healthy or degraded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "healthy",
+                        "degraded"
+                      ]
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "uptime": {
+                      "type": "number",
+                      "description": "Process uptime in seconds"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "environment": {
+                      "type": "string"
+                    },
+                    "checks": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service is unhealthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/detailed": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Detailed health check",
+        "description": "Same as /health, plus system, memory, and process detail.",
+        "responses": {
+          "200": {
+            "description": "Service is healthy or degraded (with detail payload)"
+          },
+          "503": {
+            "description": "Service is unhealthy"
+          }
+        }
+      }
+    },
+    "/health/live": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Kubernetes liveness probe",
+        "description": "Always returns 200 if the process is responsive. Use as livenessProbe.",
+        "responses": {
+          "200": {
+            "description": "Process is alive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "alive"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Kubernetes readiness probe",
+        "description": "Returns 200 only when the service can accept requests (temp dir accessible, process warm).",
+        "responses": {
+          "200": {
+            "description": "Ready to serve requests"
+          },
+          "503": {
+            "description": "Not ready"
+          }
+        }
+      }
+    }
+  }
+}

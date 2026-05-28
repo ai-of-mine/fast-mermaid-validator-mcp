@@ -185,28 +185,12 @@ class MarkdownMermaidFixer {
    * @returns {string} Diagram type
    */
   detectDiagramType(content) {
-    const firstLine = content.split('\n')[0].trim().toLowerCase();
-    
-    const types = {
-      'sequencediagram': 'sequenceDiagram',
-      'classdiagram': 'classDiagram',
-      'statediagram': 'stateDiagram',
-      'statediagram-v2': 'stateDiagram-v2',
-      'erdiagram': 'erDiagram',
-      'gantt': 'gantt',
-      'journey': 'journey',
-      'pie': 'pie',
-      'flowchart': 'flowchart',
-      'graph': 'flowchart'
-    };
-
-    for (const [keyword, type] of Object.entries(types)) {
-      if (firstLine.startsWith(keyword)) {
-        return type;
-      }
-    }
-
-    return 'flowchart';
+    // Delegate to the validator's detector — it knows all 36 diagram-type
+    // keywords (mindmap, c4, quadrant, requirement, kanban, sankey, etc.),
+    // not just the 10 this method used to cover. Without delegation the
+    // unknown types silently fell through to 'flowchart' and got rejected
+    // by the wrong parser (false-positive for valid mindmap/c4/quadrant docs).
+    return this.validator.detectDiagramType(content);
   }
 
   /**

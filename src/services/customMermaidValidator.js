@@ -180,6 +180,18 @@ class CustomMermaidValidator {
     // validator instance (see constructor comment).
     if (this.ready) { await this.ready; }
     const startTime = Date.now();
+
+    // Strip Mermaid %% line-comments before parsing. Our embedded jison
+    // grammars inherited only partial comment-handling from upstream Mermaid
+    // — 5 of 16 grammars (flow, erDiagram, mindmap, c4Diagram, quadrant) flag
+    // a leading-%% line as a syntax error even though upstream Mermaid renders
+    // them fine. One JS pre-pass is one change instead of patching 5 grammars
+    // and recompiling their parsers. The `(?!\{)` exclusion preserves
+    // %%{init:...}%% directives, which are NOT comments and matter for theming.
+    if (diagram.content && typeof diagram.content === 'string') {
+      diagram.content = diagram.content.replace(/^\s*%%(?!\{)[^\n]*\n?/gm, '');
+    }
+
     // Use provided type if available, otherwise detect from content
     const diagramType = diagram.type || this.detectDiagramType(diagram.content);
     
