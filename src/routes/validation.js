@@ -531,6 +531,63 @@ router.post(
 
 /**
  * @swagger
+ * /capabilities:
+ *   get:
+ *     tags: [validation]
+ *     summary: Which diagram types the validator can actually parse
+ *     description: |
+ *       Returns three sets so callers can branch on what the validator
+ *       can do — not just what it knows the name of.
+ *       - `validatedTypes`: types with a working parser; these will return valid:true|false
+ *       - `declaredTypes`:  all keywords the type-detector recognizes (a superset)
+ *       - `unvalidatedTypes`: declared but no parser available (LLM callers should treat as inconclusive)
+ *     responses:
+ *       200:
+ *         description: Capability report
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 validatedTypes:
+ *                   type: array
+ *                   items: { type: string }
+ *                   example: [flowchart, sequenceDiagram, classDiagram]
+ *                 declaredTypes:
+ *                   type: array
+ *                   items: { type: string }
+ *                 unvalidatedTypes:
+ *                   type: array
+ *                   items: { type: string }
+ *                   example: [zenuml]
+ *                 counts:
+ *                   type: object
+ *                   properties:
+ *                     validated: { type: integer }
+ *                     declared: { type: integer }
+ *                     unvalidated: { type: integer }
+ *                 timestamp: { type: string, format: date-time }
+ */
+router.get('/capabilities', (req, res) => {
+  try {
+    const c = validator.getCapabilities();
+    res.json({
+      ...c,
+      counts: {
+        validated: c.validatedTypes.length,
+        declared: c.declaredTypes.length,
+        unvalidated: c.unvalidatedTypes.length
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.logError(error, { context: 'capabilities' });
+    res.status(500).json({ error: 'Failed to get capabilities', message: error.message });
+  }
+});
+
+/**
+ * @swagger
  * /stats:
  *   get:
  *     tags: [validation]

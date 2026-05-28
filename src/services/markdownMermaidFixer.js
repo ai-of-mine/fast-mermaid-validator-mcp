@@ -270,15 +270,26 @@ class MarkdownMermaidFixer {
       results.push({
         id: diagram.id,
         valid: validationResult.valid,
+        // Tri-state status (validated | invalid | unsupported) + the detected
+        // type are surfaced so callers can branch on "we couldn't validate"
+        // vs "we validated and it's invalid". Without this, those two
+        // distinct outcomes collapse to `valid !== true`.
+        status: validationResult.status,
+        diagramType: validationResult.metadata && validationResult.metadata.diagramType,
         errors: validationResult.errors,
         warnings: validationResult.warnings
       });
     }
 
+    // `validDiagrams` only counts strict-true (excludes null/unsupported).
+    // `invalidDiagrams` counts strict-false. Anything `null` (unsupported)
+    // is reported separately so totals are honest about how many we actually
+    // checked.
     return {
       totalDiagrams: diagrams.length,
-      validDiagrams: results.filter(r => r.valid).length,
-      invalidDiagrams: results.filter(r => !r.valid).length,
+      validDiagrams: results.filter(r => r.valid === true).length,
+      invalidDiagrams: results.filter(r => r.valid === false).length,
+      unsupportedDiagrams: results.filter(r => r.valid === null).length,
       results: results
     };
   }

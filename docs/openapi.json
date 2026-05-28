@@ -96,12 +96,29 @@
       },
       "DiagramResult": {
         "type": "object",
+        "description": "Per-diagram validation result. The `valid` field is tri-state: true = parsed cleanly; false = parsed with errors; null = the validator could not run (unknown type or no parser). The `status` field gives the same information in string form.",
         "properties": {
           "id": {
             "type": "string"
           },
           "valid": {
-            "type": "boolean"
+            "type": "boolean",
+            "nullable": true,
+            "description": "true=ok, false=invalid, null=could not validate"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "validated",
+              "invalid",
+              "unsupported"
+            ],
+            "description": "Matches the tri-state valid field"
+          },
+          "diagramType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Detected diagram type (null if undetectable)"
           },
           "errors": {
             "type": "array",
@@ -517,6 +534,73 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capabilities": {
+      "get": {
+        "tags": [
+          "validation"
+        ],
+        "summary": "Which diagram types the validator can actually parse",
+        "description": "Returns three sets so callers can branch on what the validator\ncan do — not just what it knows the name of.\n- `validatedTypes`: types with a working parser; these will return valid:true|false\n- `declaredTypes`:  all keywords the type-detector recognizes (a superset)\n- `unvalidatedTypes`: declared but no parser available (LLM callers should treat as inconclusive)\n",
+        "responses": {
+          "200": {
+            "description": "Capability report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "validatedTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "flowchart",
+                        "sequenceDiagram",
+                        "classDiagram"
+                      ]
+                    },
+                    "declaredTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "unvalidatedTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "zenuml"
+                      ]
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "validated": {
+                          "type": "integer"
+                        },
+                        "declared": {
+                          "type": "integer"
+                        },
+                        "unvalidated": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
                 }
               }
             }

@@ -144,11 +144,15 @@ router.post('/validate', async (req, res) => {
 
     const result = await fixer.validateMarkdown(content);
 
+    // `success` reflects "no diagrams flagged invalid". Unsupported diagrams
+    // (where we literally couldn't validate) are reported but do NOT flip
+    // success — that would be a false-negative the same shape as the old bug.
     res.json({
       success: result.invalidDiagrams === 0,
       totalDiagrams: result.totalDiagrams,
       validDiagrams: result.validDiagrams,
       invalidDiagrams: result.invalidDiagrams,
+      unsupportedDiagrams: result.unsupportedDiagrams,
       results: result.results
     });
 

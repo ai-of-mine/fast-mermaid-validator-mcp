@@ -72,9 +72,12 @@ const options = {
         },
         DiagramResult: {
           type: 'object',
+          description: 'Per-diagram validation result. The `valid` field is tri-state: true = parsed cleanly; false = parsed with errors; null = the validator could not run (unknown type or no parser). The `status` field gives the same information in string form.',
           properties: {
             id: { type: 'string' },
-            valid: { type: 'boolean' },
+            valid: { type: 'boolean', nullable: true, description: 'true=ok, false=invalid, null=could not validate' },
+            status: { type: 'string', enum: ['validated', 'invalid', 'unsupported'], description: 'Matches the tri-state valid field' },
+            diagramType: { type: 'string', nullable: true, description: 'Detected diagram type (null if undetectable)' },
             errors: { type: 'array', items: { $ref: '#/components/schemas/ValidationError' } },
             warnings: { type: 'array', items: { $ref: '#/components/schemas/ValidationError' } }
           }

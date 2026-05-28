@@ -149,7 +149,7 @@ class CustomMermaidValidator {
 
     // Try parsing with each available grammar to detect type
     const availableTypes = this.grammarCompiler.getAvailableTypes();
-    
+
     for (const diagramType of availableTypes) {
       try {
         const parser = this.grammarCompiler.getParser(diagramType);
@@ -164,8 +164,48 @@ class CustomMermaidValidator {
       }
     }
 
-    // Default to flowchart if no type can be determined
-    return 'flowchart';
+    // No type detected. Return null so callers can distinguish "we don't
+    // know how to validate this" from "we parsed it as flowchart and it
+    // failed" — the previous behavior (default to 'flowchart') routed
+    // gibberish like 'foobar' through the flowchart parser and produced
+    // misleading "Expecting 'GRAPH'" errors. Returning null lets
+    // validateDiagram surface an unsupported_diagram_type response instead.
+    return null;
+  }
+
+  /**
+   * Report which diagram types this validator can actually parse.
+   * The set is the union of compiled Jison grammars and Langium parsers,
+   * filtered against the diagram-type lookup keys so aliases resolve.
+   * Returns:
+   *   validatedTypes: types with a working parser
+   *   declaredTypes:  types this validator KNOWS the keyword for
+   *   unvalidatedTypes: declared but no working parser (silent-pass hazards)
+   * @returns {{validatedTypes:string[], declaredTypes:string[], unvalidatedTypes:string[]}}
+   */
+  getCapabilities() {
+    const jisonTypes = this.grammarCompiler.getAvailableTypes() || [];
+    // Langium-backed types whose parsers actually exist (not the zenuml stub).
+    const langiumTypes = ['pie', 'gitGraph', 'info', 'architecture', 'architecture-beta',
+                          'radar', 'packet', 'packet-beta', 'treemap', 'treemap-beta'];
+
+    const validatedTypes = [...new Set([...jisonTypes, ...langiumTypes])].sort();
+
+    // Canonical declared keywords (mirrors the lookup in detectDiagramType).
+    const declaredTypes = [
+      'flowchart', 'graph', 'sequenceDiagram', 'classDiagram',
+      'stateDiagram', 'stateDiagram-v2', 'erDiagram', 'gantt', 'journey',
+      'pie', 'requirement', 'requirementDiagram', 'mindmap', 'timeline',
+      'sankey-beta', 'xychart-beta', 'kanban', 'gitGraph', 'info',
+      'architecture', 'architecture-beta', 'radar', 'packet', 'packet-beta',
+      'treemap', 'treemap-beta', 'zenuml',
+      'C4Context', 'c4', 'quadrantChart', 'quadrant', 'block', 'block-beta',
+      'exampleDiagram'
+    ].sort();
+
+    const unvalidatedTypes = declaredTypes.filter(t => !validatedTypes.includes(t));
+
+    return { validatedTypes, declaredTypes, unvalidatedTypes };
   }
 
   /**
@@ -192,12 +232,19 @@ class CustomMermaidValidator {
       diagram.content = diagram.content.replace(/^\s*%%(?!\{)[^\n]*\n?/gm, '');
     }
 
-    // Use provided type if available, otherwise detect from content
+    // Use provided type if available, otherwise detect from content.
+    // detectDiagramType returns null for content we can't identify; surface
+    // that as "unsupported" instead of routing through the flowchart parser.
     const diagramType = diagram.type || this.detectDiagramType(diagram.content);
-    
+
     const result = {
       diagramId: diagram.id,
+      // Tri-state: true = parsed cleanly, false = parsed with errors,
+      // null = we couldn't run a validator at all (unknown type or no parser).
+      // Callers checking `valid === true` still get the conservative
+      // "don't ship" behavior for both false and null.
       valid: false,
+      status: 'invalid',
       errors: [],
       warnings: [],
       svgGenerated: false,
@@ -210,13 +257,32 @@ class CustomMermaidValidator {
       }
     };
 
+    // Short-circuit when the type is unknown or has no parser. Without this,
+    // unknown types (e.g. 'foobar', or declared-but-unparsed 'zenuml') would
+    // be routed through the flowchart parser and produce misleading
+    // "Expecting 'GRAPH'" errors, or silently report valid:true.
+    const capabilities = this.getCapabilities();
+    if (!diagramType || !capabilities.validatedTypes.includes(diagramType)) {
+      result.valid = null;
+      result.status = 'unsupported';
+      result.errors.push({
+        type: 'unsupported_diagram_type',
+        message: diagramType
+          ? `Cannot validate: no parser available for diagram type '${diagramType}'.`
+          : 'Cannot validate: diagram type could not be determined from the content.',
+        detail: `Supported types with parsers: ${capabilities.validatedTypes.join(', ')}`
+      });
+      return result;
+    }
+
     try {
       // Validate using REAL compiled Jison grammar
       const validationResult = await this.validateWithRealGrammar(diagram.content, diagramType, result);
       
       if (validationResult.valid) {
         result.valid = true;
-        
+        result.status = 'validated';
+
         // SVG generation disabled for now
         result.svgGenerated = false;
       }
