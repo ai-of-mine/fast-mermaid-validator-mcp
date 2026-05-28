@@ -256,7 +256,7 @@ class MarkdownMermaidFixer {
    * @param {string} markdownContent - Markdown content
    * @returns {Object} Validation result
    */
-  async validateMarkdown(markdownContent) {
+  async validateMarkdown(markdownContent, options = {}) {
     const diagrams = this.extractMermaidDiagrams(markdownContent);
     const results = [];
 
@@ -265,7 +265,7 @@ class MarkdownMermaidFixer {
         id: diagram.id,
         content: diagram.originalContent,
         type: this.detectDiagramType(diagram.originalContent)
-      }, { autoFix: false });
+      }, { autoFix: false, mermaidVersion: options.mermaidVersion });
 
       results.push({
         id: diagram.id,

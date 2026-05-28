@@ -4,6 +4,42 @@ All notable changes to `@ai-of-mine/fast-mermaid-validator-mcp` are documented i
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] — 2026-05-28
+
+> **v1.4.2 remains the LTS line** (dist-tag `lts` on npm; `gregoriomomm/fast-mermaid-validator-mcp:lts` on Docker Hub). v1.5.0 is the development line; the `mermaidVersion: '11'` option is **experimental** and behavior may shift in 1.5.x patches.
+
+### Added
+
+- **Vendored upstream Mermaid 11.x grammar set** in `src/services/grammars/v11/` (18 .jison files including new diagram types `ishikawa` and `venn`). Previous v10-era grammars moved to `src/services/grammars/v10/` (the default).
+
+- **`mermaidVersion` request option** on `POST /api/v1/validate`, `POST /api/v1/markdown/validate`, and `POST /api/v1/upload/file`. Pass `options.mermaidVersion: 11` (or v11) to opt into the new grammar set. Default is v10 (backward compatible).
+
+- **Per-type DB modules ported from upstream Mermaid** in `src/services/grammars/v11-db/` (19 files: commonDb + 18 type-specific). Each carries the upstream MIT attribution header. These satisfy the runtime context that v11 jison grammars need; the v10 set still uses the existing inline context.
+
+- **Two new diagram types** supported (in v11 only): `ishikawa` (fishbone) and `venn`.
+
+### Changed
+
+- **Version-aware `GrammarCompiler`** — accepts `{ version: 'v10' | 'v11' }` and routes grammar-file lookups to the correct subdirectory. Two compiler instances run side-by-side, both compiled at server startup so per-request dispatch is cheap.
+
+- **`getCapabilities()`** now returns the **union** of validated types across all grammar versions. `ishikawa` and `venn` appear in `validatedTypes` even though they only have parsers in v11.
+
+### Known limitations (v11)
+
+- `flowchart` v11 grammar expects a slightly different token shape than v10 — `flowchart TD\n  A-->B` validates fine on v10 but fails on v11. Tracked for v1.5.1.
+- `kanban` v11 grammar fails on simple test inputs; needs deeper context port. Tracked.
+- `venn` test syntax is upstream-specific; needs documentation. Tracked.
+- **15 of 18 v11 grammars** validate v10-shaped inputs unchanged.
+
+### Compatibility
+
+- Default behavior (no `mermaidVersion` option) is **identical** to v1.4.2 — `/markdown/validate`, `/validate`, and `/upload/file` produce the same responses for the same inputs.
+- All 41 v1.4.0-bugfixes regression assertions pass on the v10 default path.
+
+### Internal
+
+- New `v11-db/` per-type DB modules each carry the upstream MIT attribution header. NOTICE file already credits Mermaid.js.
+
 ## [1.4.2] — 2026-05-28
 
 ### Added

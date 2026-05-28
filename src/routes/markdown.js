@@ -147,7 +147,9 @@ router.post('/validate', async (req, res) => {
       });
     }
 
-    const result = await fixer.validateMarkdown(content);
+    // Accept options.mermaidVersion to opt into the v11 grammar set.
+    const opts = req.body.options || {};
+    const result = await fixer.validateMarkdown(content, { mermaidVersion: opts.mermaidVersion });
 
     // `success` reflects "no diagrams flagged invalid". Unsupported diagrams
     // (where we literally couldn't validate) are reported but do NOT flip

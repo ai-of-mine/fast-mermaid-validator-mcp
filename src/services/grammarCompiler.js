@@ -28,65 +28,99 @@ try {
 // Import Mermaid database classes (need to be transpiled or used via require)
 // For now, we'll create minimal database implementations based on the original code
 
+// Version-aware path layouts. v10 = our long-vendored snapshot (Mermaid 10-ish
+// era); v11 = freshly vendored from upstream Mermaid develop branch (≈ 11.x).
+// Add new versions here as the grammar set grows.
+const VERSION_LAYOUTS = {
+  v10: {
+    base: 'v10',
+    paths: {
+      'flowchart':         'flowchart/flow.jison',
+      'graph':             'flowchart/flow.jison',
+      'sequenceDiagram':   'sequence/sequenceDiagram.jison',
+      'classDiagram':      'class/classDiagram.jison',
+      'stateDiagram':      'state/stateDiagram.jison',
+      'stateDiagram-v2':   'state/stateDiagram.jison',
+      'erDiagram':         'er/erDiagram.jison',
+      'gantt':             'gantt/gantt.jison',
+      'journey':           'user-journey/journey.jison',
+      'requirement':       'requirement/requirementDiagram.jison',
+      'requirementDiagram':'requirement/requirementDiagram.jison',
+      'sankey-beta':       'sankey/sankey.jison',
+      'xychart-beta':      'xychart/xychart.jison',
+      'kanban':            'kanban/kanban.jison',
+      'block':             'block/block.jison',
+      'block-beta':        'block/block.jison',
+      'c4':                'c4/c4Diagram.jison',
+      'C4Context':         'c4/c4Diagram.jison',
+      'mindmap':           'mindmap/mindmap.jison',
+      'quadrant':          'quadrant/quadrant.jison',
+      'quadrantChart':     'quadrant/quadrant.jison',
+      'timeline':          'timeline/timeline.jison'
+    }
+  },
+  v11: {
+    base: 'v11',
+    paths: {
+      'flowchart':         'flowchart/flow.jison',
+      'graph':             'flowchart/flow.jison',
+      'sequenceDiagram':   'sequence/sequenceDiagram.jison',
+      'classDiagram':      'class/classDiagram.jison',
+      'stateDiagram':      'state/stateDiagram.jison',
+      'stateDiagram-v2':   'state/stateDiagram.jison',
+      'erDiagram':         'er/erDiagram.jison',
+      'gantt':             'gantt/gantt.jison',
+      'journey':           'user-journey/journey.jison',
+      'requirement':       'requirement/requirementDiagram.jison',
+      'requirementDiagram':'requirement/requirementDiagram.jison',
+      'sankey-beta':       'sankey/sankey.jison',
+      'xychart-beta':      'xychart/xychart.jison',
+      'kanban':            'kanban/kanban.jison',
+      'block':             'block/block.jison',
+      'block-beta':        'block/block.jison',
+      'c4':                'c4/c4Diagram.jison',
+      'C4Context':         'c4/c4Diagram.jison',
+      'mindmap':           'mindmap/mindmap.jison',
+      'quadrant':          'quadrant-chart/quadrant.jison',
+      'quadrantChart':     'quadrant-chart/quadrant.jison',
+      'timeline':          'timeline/timeline.jison',
+      // New in v11
+      'ishikawa':          'ishikawa/ishikawa.jison',
+      'venn':              'venn/venn.jison'
+    }
+  }
+};
+
 class GrammarCompiler {
-  constructor() {
+  constructor(options = {}) {
+    // version selects which vendored grammar set to load. v10 is the default
+    // (default for backward compat); v11 picks newly-vendored upstream grammars.
+    this.version = options.version || 'v10';
     this.parsers = new Map();
     this.grammarPaths = new Map();
     this.initializeGrammarPaths();
   }
 
   /**
-   * Initialize paths to grammar files
+   * Initialize paths to grammar files based on this.version
    */
   initializeGrammarPaths() {
-    // Use absolute path from the application root  
-    const basePath = path.resolve(__dirname, './grammars');
-    
-    this.grammarPaths.set('flowchart', path.join(basePath, 'flowchart/flow.jison'));
-    this.grammarPaths.set('graph', path.join(basePath, 'flowchart/flow.jison'));
-    this.grammarPaths.set('sequenceDiagram', path.join(basePath, 'sequence/sequenceDiagram.jison'));
-    this.grammarPaths.set('classDiagram', path.join(basePath, 'class/classDiagram.jison'));
-    this.grammarPaths.set('stateDiagram', path.join(basePath, 'state/stateDiagram.jison'));
-    this.grammarPaths.set('stateDiagram-v2', path.join(basePath, 'state/stateDiagram.jison'));
-    this.grammarPaths.set('erDiagram', path.join(basePath, 'er/erDiagram.jison'));
-    this.grammarPaths.set('gantt', path.join(basePath, 'gantt/gantt.jison'));
-    this.grammarPaths.set('journey', path.join(basePath, 'user-journey/journey.jison'));
-    
-    // Fix missing mappings for failing diagram types
-    this.grammarPaths.set('requirement', path.join(basePath, 'requirement/requirementDiagram.jison'));
-    this.grammarPaths.set('requirementDiagram', path.join(basePath, 'requirement/requirementDiagram.jison'));
-    
-    this.grammarPaths.set('sankey-beta', path.join(basePath, 'sankey/sankey.jison'));
-    this.grammarPaths.set('xychart-beta', path.join(basePath, 'xychart/xychart.jison'));
-    this.grammarPaths.set('kanban', path.join(basePath, 'kanban/kanban.jison'));
-    
-    this.grammarPaths.set('block', path.join(basePath, 'block/block.jison'));
-    this.grammarPaths.set('block-beta', path.join(basePath, 'block/block.jison'));
-    
-    this.grammarPaths.set('c4', path.join(basePath, 'c4/c4Diagram.jison'));
-    this.grammarPaths.set('C4Context', path.join(basePath, 'c4/c4Diagram.jison'));
-    
-    this.grammarPaths.set('mindmap', path.join(basePath, 'mindmap/mindmap.jison'));
-    
-    this.grammarPaths.set('quadrant', path.join(basePath, 'quadrant/quadrant.jison'));
-    this.grammarPaths.set('quadrantChart', path.join(basePath, 'quadrant/quadrant.jison'));
-    
-    this.grammarPaths.set('timeline', path.join(basePath, 'timeline/timeline.jison'));
-    
-    // 'exampleDiagram' was a placeholder mapping whose .jison grammar was
-    // never shipped. The runtime warning it produced on every boot
-    // ("Grammar file does not exist: .../exampleDiagram.jison") is harmless
-    // but noisy. Removed in v1.2.1. The parser-context case below stays so
-    // that the public API surface (getSupportedTypes / contexts) is
-    // unchanged if anyone re-adds the grammar file later.
+    const layout = VERSION_LAYOUTS[this.version];
+    if (!layout) {
+      logger.error(`Unknown grammar version: ${this.version}`);
+      return;
+    }
+    const basePath = path.resolve(__dirname, './grammars', layout.base);
+    for (const [type, relPath] of Object.entries(layout.paths)) {
+      this.grammarPaths.set(type, path.join(basePath, relPath));
+    }
 
-
-    // These are Langium-based (packet, architecture, treemap) but add them for reference
-    this.grammarPaths.set('packet-beta', 'LANGIUM'); // Langium-based
-    this.grammarPaths.set('packet', 'LANGIUM'); // Langium-based  
-    this.grammarPaths.set('architecture-beta', 'LANGIUM'); // Langium-based
-    this.grammarPaths.set('architecture', 'LANGIUM'); // Langium-based
-    this.grammarPaths.set('treemap', 'LANGIUM'); // Langium-based
+    // Langium-based types are vendored separately (not affected by v10/v11 split)
+    this.grammarPaths.set('packet-beta', 'LANGIUM');
+    this.grammarPaths.set('packet', 'LANGIUM');
+    this.grammarPaths.set('architecture-beta', 'LANGIUM');
+    this.grammarPaths.set('architecture', 'LANGIUM');
+    this.grammarPaths.set('treemap', 'LANGIUM');
   }
 
   /**
@@ -218,6 +252,15 @@ class GrammarCompiler {
    * @returns {Object} Parser context object
    */
   createParserContext(diagramType) {
+    // For v11 grammars, return a per-type DB instance ported from upstream
+    // Mermaid. Falls through to the v10 generic context if no v11 factory
+    // matches the type (so grammars that don't need a specific DB still work).
+    if (this.version === 'v11') {
+      const { createV11Db } = require('./grammars/v11-db');
+      const v11 = createV11Db(diagramType);
+      if (v11) return v11;
+      // else: fall through to v10 generic context (works for langium-backed types)
+    }
     // Create a database-like context similar to Mermaid's approach
     const baseContext = {
       // State tracking (similar to FlowDB)

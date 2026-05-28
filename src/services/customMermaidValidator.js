@@ -14,7 +14,18 @@ const MermaidAutoFixer = require('./mermaidAutoFixer');
 
 class CustomMermaidValidator {
   constructor() {
-    this.grammarCompiler = new GrammarCompiler();
+    // We keep one GrammarCompiler PER grammar-version. Each compiles its own
+    // set of jison parsers on first use. Routes (and validateDiagram options)
+    // pick which one to use via `mermaidVersion`. Default is 'v10' (the
+    // long-vendored snapshot — what 1.4.x callers expect). 'v11' is opt-in,
+    // freshly vendored from upstream Mermaid (see grammars/v11/).
+    this.grammarCompilers = {
+      v10: new GrammarCompiler({ version: 'v10' }),
+      v11: new GrammarCompiler({ version: 'v11' })
+    };
+    // Backward-compat alias — code that references this.grammarCompiler
+    // (capabilities, detectDiagramType, etc.) still works against the v10 set.
+    this.grammarCompiler = this.grammarCompilers.v10;
     this.langiumValidator = new LangiumValidator();
     this.validationInstructions = new ValidationInstructions();
     this.autoFixer = new MermaidAutoFixer();
@@ -34,17 +45,22 @@ class CustomMermaidValidator {
    */
   async initializeGrammarParsers() {
     try {
-      // Compile all available grammar files
-      await this.grammarCompiler.compileAllGrammars();
-      
-      const status = this.grammarCompiler.getStatus();
-      logger.info('Real grammar parsers initialized', {
-        compiledParsers: status.compiledParsers,
-        totalGrammars: status.totalGrammars,
-        availableTypes: status.availableTypes,
-        missingParsers: status.missingParsers
-      });
-
+      // Compile every vendored grammar set in parallel so both v10 (default)
+      // and v11 (opt-in via mermaidVersion request option) are ready by the
+      // time the first request lands.
+      await Promise.all(
+        Object.entries(this.grammarCompilers).map(async ([ver, gc]) => {
+          await gc.compileAllGrammars();
+          const status = gc.getStatus();
+          logger.info(`Grammar parsers initialized (${ver})`, {
+            version: ver,
+            compiledParsers: status.compiledParsers,
+            totalGrammars: status.totalGrammars,
+            availableTypes: status.availableTypes,
+            missingParsers: status.missingParsers
+          });
+        })
+      );
     } catch (error) {
       logger.error('Grammar initialization failed:', error);
       throw error;
@@ -142,7 +158,10 @@ class CustomMermaidValidator {
       'quadrantchart': 'quadrantChart',
       'quadrant': 'quadrantChart',
       'block-beta': 'block-beta',
-      'block': 'block-beta'
+      'block': 'block-beta',
+      // v11 additions
+      'ishikawa': 'ishikawa',
+      'venn': 'venn'
     };
 
     // Check for explicit type declaration
@@ -194,7 +213,18 @@ class CustomMermaidValidator {
    * @returns {{validatedTypes:string[], declaredTypes:string[], unvalidatedTypes:string[]}}
    */
   getCapabilities() {
-    const jisonTypes = this.grammarCompiler.getAvailableTypes() || [];
+    // Union of jison types across BOTH grammar versions — so v11-only types
+    // (ishikawa, venn) appear as validated even though they're absent from v10.
+    // The validator's per-request mermaidVersion dispatch determines which set
+    // a given call actually uses.
+    const jisonTypes = new Set();
+    if (this.grammarCompilers) {
+      for (const gc of Object.values(this.grammarCompilers)) {
+        for (const t of (gc.getAvailableTypes() || [])) jisonTypes.add(t);
+      }
+    } else if (this.grammarCompiler) {
+      for (const t of (this.grammarCompiler.getAvailableTypes() || [])) jisonTypes.add(t);
+    }
     // Langium-backed types whose parsers actually exist (not the zenuml stub).
     const langiumTypes = ['pie', 'gitGraph', 'info', 'architecture', 'architecture-beta',
                           'radar', 'packet', 'packet-beta', 'treemap', 'treemap-beta'];
@@ -210,7 +240,9 @@ class CustomMermaidValidator {
       'architecture', 'architecture-beta', 'radar', 'packet', 'packet-beta',
       'treemap', 'treemap-beta', 'zenuml',
       'C4Context', 'c4', 'quadrantChart', 'quadrant', 'block', 'block-beta',
-      'exampleDiagram'
+      'exampleDiagram',
+      // v11 additions
+      'ishikawa', 'venn'
     ].sort();
 
     const unvalidatedTypes = declaredTypes.filter(t => !validatedTypes.includes(t));
@@ -291,9 +323,16 @@ class CustomMermaidValidator {
       return result;
     }
 
+    // Pick grammar version (default v10 for backward compat; opt-in v11 via
+    // options.mermaidVersion). Stored on result.metadata so callers see what
+    // they got.
+    const versionRaw = (options && options.mermaidVersion) || 'v10';
+    const version = String(versionRaw).startsWith('11') || versionRaw === 'v11' ? 'v11' : 'v10';
+    result.metadata.mermaidVersion = version;
+
     try {
       // Validate using REAL compiled Jison grammar
-      const validationResult = await this.validateWithRealGrammar(diagram.content, diagramType, result);
+      const validationResult = await this.validateWithRealGrammar(diagram.content, diagramType, result, version);
       
       if (validationResult.valid) {
         result.valid = true;
@@ -366,15 +405,16 @@ class CustomMermaidValidator {
    * @param {Object} result - Result object to update
    * @returns {Object} Validation result
    */
-  async validateWithRealGrammar(content, diagramType, result) {
+  async validateWithRealGrammar(content, diagramType, result, version) {
     try {
       // Check if this is a Langium-based diagram type
       if (this.langiumValidator.isLangiumDiagram(diagramType)) {
         return await this.langiumValidator.validateWithLangiumGrammar(content, diagramType, result);
       }
-      
-      // Use Jison grammar parser for traditional diagram types
-      const parser = this.grammarCompiler.getParser(diagramType);
+
+      // Dispatch to the right version's GrammarCompiler.
+      const gc = (this.grammarCompilers && this.grammarCompilers[version]) || this.grammarCompiler;
+      const parser = gc.getParser(diagramType);
       
       if (!parser) {
         result.errors.push({
@@ -385,8 +425,9 @@ class CustomMermaidValidator {
         return { valid: false };
       }
 
-      // Set up parser context like Mermaid does: parser.yy = new DiagramDB()
-      parser.yy = this.grammarCompiler.createParserContext(diagramType);
+      // Set up parser context (per-version: v10 uses inline generic context,
+      // v11 uses upstream-ported DB modules from grammars/v11-db/)
+      parser.yy = gc.createParserContext(diagramType);
       
       // Clear any previous state (important for subsequent parses)
       if (parser.yy.clear) {

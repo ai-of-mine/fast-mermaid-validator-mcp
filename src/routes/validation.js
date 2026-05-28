@@ -125,7 +125,8 @@ router.post(
       
       // Validate diagrams using custom grammar parser
       const results = await validator.validateMultipleDiagrams(diagramObjects, {
-        timeout: options.timeout || config.validation.timeout
+        timeout: options.timeout || config.validation.timeout,
+        mermaidVersion: options.mermaidVersion
       });
 
       // Add request metadata
@@ -226,7 +227,8 @@ router.post(
     
     try {
       const options = {
-        timeout: parseInt(req.body.timeout, 10) || config.validation.timeout
+        timeout: parseInt(req.body.timeout, 10) || config.validation.timeout,
+        mermaidVersion: req.body.mermaidVersion
       };
 
       // Process uploaded files
