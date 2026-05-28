@@ -107,10 +107,12 @@ class Server {
       });
     });
 
-    // API documentation (if in development)
-    if (config.server.env === 'development') {
-      this.setupSwaggerDocs();
-    }
+    // API documentation. Always mounted (production too) -- there's no
+    // secret in the OpenAPI spec and downstream consumers (the Docker Hub
+    // UBI image runs NODE_ENV=production) need to read the API contract.
+    // setupSwaggerDocs() try/catches its own failures, so a missing
+    // swagger-* dep degrades gracefully rather than crashing boot.
+    this.setupSwaggerDocs();
 
     // 404 handler (Express 5: middleware without a path matches all)
     this.app.use((req, res) => {

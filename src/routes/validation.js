@@ -12,6 +12,9 @@ const config = require('../config/config');
 const logger = require('../utils/logger');
 const CustomMermaidValidator = require('../services/customMermaidValidator');
 const FileProcessor = require('../services/fileProcessor');
+// Shared singleton fixer — used by /api/v1/upload/fix and the markdown router.
+// See src/services/fixerInstance.js for why this is shared.
+const fixer = require('../services/fixerInstance');
 const { 
   validateRequest, 
   validateDiagramsInput, 
@@ -280,6 +283,106 @@ router.post(
 
       res.status(500).json({
         error: 'File validation failed',
+        message: error.message,
+        requestId,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+);
+
+/**
+ * File upload auto-fix endpoint
+ * POST /api/v1/upload/fix
+ *
+ * Multipart upload variant of POST /api/v1/markdown/fix. Accept .md / .mmd /
+ * .txt as `file` form field, run the auto-fixer over each Mermaid block, and
+ * return the rewritten file content plus per-diagram statistics.
+ *
+ * Equivalent to:
+ *   jq -Rs '{content:.}' file.md | curl -X POST .../api/v1/markdown/fix --data-binary @-
+ * but ergonomic for tooling that wants a plain `-F file=@...` upload, and
+ * mirrors the existing /api/v1/upload/file (validate-only) endpoint.
+ */
+router.post(
+  '/upload/fix',
+  // Use `array('file', 1)` (not `single('file')`) so the shared
+  // fileUploadSecurity middleware -- which expects `req.files` (plural) --
+  // works without bespoke shim code. Limits.files=1 still caps it at one.
+  upload.array('file', 1),
+  fileUploadSecurity,
+  async (req, res) => {
+    const requestId = uuidv4();
+    const startTime = Date.now();
+
+    try {
+      const file = req.files && req.files[0];
+      if (!file) {
+        return res.status(400).json({
+          error: 'Missing file',
+          message: 'Send the file as multipart/form-data with field name "file"',
+          hint: 'curl -F "file=@/path/to/diagram.md" .../api/v1/upload/fix',
+          requestId,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // multer.diskStorage was configured upstream for /upload/file; read the
+      // file from disk, fix it, then have the file-processor reap the temp file.
+      const fs = require('fs');
+      const content = fs.readFileSync(file.path, 'utf8');
+
+      let options = {};
+      if (req.body && req.body.options) {
+        try { options = typeof req.body.options === 'string' ? JSON.parse(req.body.options) : req.body.options; }
+        catch (_) { /* ignore; default {} */ }
+      }
+
+      // For raw .mmd (no markdown fences), wrap it so the markdown extractor sees it.
+      const isMarkdown = /```mermaid/.test(content);
+      const wrapped = isMarkdown ? content : '```mermaid\n' + content.trim() + '\n```\n';
+
+      const result = await fixer.processMarkdown(wrapped, options);
+
+      // If we wrapped a raw .mmd, unwrap the result so the caller gets the
+      // same shape they sent.
+      let fixedContent = result.fixedContent;
+      if (!isMarkdown) {
+        const m = fixedContent.match(/```mermaid\s*\n([\s\S]*?)\n```/);
+        if (m) fixedContent = m[1];
+      }
+
+      // Best-effort temp-file cleanup
+      try { fs.unlinkSync(file.path); } catch (_) {}
+
+      res.json({
+        success: result.success,
+        requestId,
+        timestamp: new Date().toISOString(),
+        processingTime: Date.now() - startTime,
+        fileName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        wasMarkdown: isMarkdown,
+        fixedContent,
+        statistics: {
+          totalDiagrams: result.totalDiagrams,
+          fixedDiagrams: result.fixedDiagrams,
+          failedDiagrams: result.failedDiagrams,
+          totalIterations: result.totalIterations,
+          processingTime: result.processingTime
+        },
+        diagrams: result.diagrams.map(d => ({
+          id: d.id,
+          success: d.success,
+          wasFixed: d.wasFixed,
+          iterations: d.iterations
+        }))
+      });
+    } catch (error) {
+      logger.logError(error, { context: 'upload_fix', requestId });
+      res.status(500).json({
+        error: 'Upload fix failed',
         message: error.message,
         requestId,
         timestamp: new Date().toISOString()

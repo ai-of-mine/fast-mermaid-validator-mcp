@@ -5,16 +5,12 @@
 
 const express = require('express');
 const router = express.Router();
-const MarkdownMermaidFixer = require('../services/markdownMermaidFixer');
 const logger = require('../utils/logger');
-
-// Module-level singleton. The fixer's grammar parsers cost ~4-5s to compile
-// from scratch; if we built one per request (as the original code did) every
-// /api/v1/markdown/fix and /validate call paid that cost. The fixer is
-// inherently stateless across requests (it processes one markdown payload
-// per call and produces a fresh result object), so a single shared instance
-// is safe and cuts request time from ~5s to <100ms.
-const fixer = new MarkdownMermaidFixer();
+// Shared singleton — see src/services/fixerInstance.js. Reuses one
+// MarkdownMermaidFixer (and its compiled grammar parsers) across all routes
+// that need it (the markdown/* routes here and the /upload/fix route in
+// validation.js), so we don't pay the ~4-5s jison-compile cost per request.
+const fixer = require('../services/fixerInstance');
 
 /**
  * POST /api/markdown/fix

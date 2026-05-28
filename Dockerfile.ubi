@@ -78,7 +78,7 @@ CMD ["node", "scripts/start-all.js"]
 
 # OpenShift / Kubernetes / OCI metadata
 LABEL name="fast-mermaid-validator-mcp" \
-      version="1.3.4" \
+      version="1.3.5" \
       summary="Fast Mermaid Validator MCP — REST (8000) + Streamable HTTP MCP (8080) by default" \
       description="High-performance Mermaid diagram validator. Default entrypoint runs both transports: REST API on :8000 and Streamable HTTP MCP (spec-compliant, stateless) on :8080. Override CMD to run a single transport." \
       vendor="ai-of-mine" \
