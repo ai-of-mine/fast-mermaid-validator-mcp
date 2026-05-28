@@ -8,8 +8,7 @@
 %x style
 
 %%
-\%\%(?!\{)[^\n]*                                                /* skip %% line-comments (v1.4.1) */
-\%\%\{[\s\S]*?\}\%\%[^\n]*                                      /* skip %%{init: {...}}%% theme directives (v1.4.1) */
+\%\%(?!\{)[^\n]*                                                /* skip %% line-comments (v1.4.1) — directives stripped in JS */
 accTitle\s*":"\s*                                               { this.begin("acc_title");return 'acc_title'; }
 <acc_title>(?!\n|;|#)*[^\n]*                                    { this.popState(); return "acc_title_value"; }
 accDescr\s*":"\s*                                               { this.begin("acc_descr");return 'acc_descr'; }

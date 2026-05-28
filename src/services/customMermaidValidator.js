@@ -231,15 +231,22 @@ class CustomMermaidValidator {
     if (this.ready) { await this.ready; }
     const startTime = Date.now();
 
-    // Note: in v1.4.0 we stripped %% line-comments and %%{...}%% directives
-    // in JS before passing to the parser, because flow.jison and
-    // erDiagram.jison lacked skip-comment rules. v1.4.1 adds those rules at
-    // the grammar level (mindmap/c4/quadrant already had them — the previous
-    // false-positive there was the route-level type-detector bug). The JS
-    // pre-pass is no longer needed and was removed for two reasons:
-    //   (a) it modifies user-provided content silently (line numbers shift
-    //       in parse errors, which was misleading)
-    //   (b) it didn't handle inline `text %% comment` — the grammar rule does
+    // Hybrid comment/directive handling (v1.4.1):
+    //   - %% line-comments and inline `text %% comment` are recognized by
+    //     the grammars themselves (flow.jison, erDiagram.jison, classDiagram.jison
+    //     got new lexer rules in v1.4.1; the other grammars already had them).
+    //   - %%{init:...}%% theme directives are stripped here in JS, NOT at the
+    //     grammar level. The inner content can contain JSON with nested
+    //     `{` `}`, so the lex rule needs a non-greedy match — which works
+    //     reliably in some jison grammars (flow.jison) but not others
+    //     (erDiagram.jison treats it differently, possibly because of
+    //     `%options case-insensitive`). A 1-line JS strip uniformly handles
+    //     directives across every diagram type, and directives are renderer
+    //     metadata (theme/layout) so discarding them is correct for
+    //     validation purposes regardless.
+    if (diagram.content && typeof diagram.content === 'string') {
+      diagram.content = diagram.content.replace(/^\s*%%\{[\s\S]*?\}%%[^\n]*\n?/gm, '');
+    }
 
     // Use provided type if available, otherwise detect from content.
     // detectDiagramType returns null for content we can't identify; surface

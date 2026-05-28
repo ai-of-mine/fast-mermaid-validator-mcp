@@ -1,6 +1,6 @@
 {
   "name": "@ai-of-mine/fast-mermaid-validator-mcp",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "High-performance API and Model Context Protocol (MCP) server for validating Mermaid diagrams with comprehensive security features, multiple transport options, and enterprise-grade capabilities",
   "main": "src/server.js",
   "bin": "src/server.js",
@@ -30,6 +30,7 @@
     "test:unit": "jest --testPathPatterns=test/unit --passWithNoTests",
     "test:integration": "node test/integration/validate-endpoints.js && node test/integration/upload-endpoints.js",
     "test:regression": "node test/regression/v1.4.0-bugfixes.test.js",
+    "test:full": "node test/regression/full-coverage.test.js",
     "test:api": "jest --testPathPatterns=test/api",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

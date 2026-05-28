@@ -761,103 +761,103 @@ options: {"case-insensitive":true},
 performAction: function anonymous(yy,yy_,$avoiding_name_collisions,YY_START) {
 var YYSTATE=YY_START;
 switch($avoiding_name_collisions) {
-case 0:/* skip %% line-comments (v1.4.1) */
+case 0:/* skip %% line-comments (v1.4.1) — directives stripped in JS */
 break;
-case 1:/* skip %%{init: {...}}%% theme directives (v1.4.1) */
+case 1: this.begin("acc_title");return 24; 
 break;
-case 2: this.begin("acc_title");return 24; 
+case 2: this.popState(); return "acc_title_value"; 
 break;
-case 3: this.popState(); return "acc_title_value"; 
+case 3: this.begin("acc_descr");return 26; 
 break;
-case 4: this.begin("acc_descr");return 26; 
+case 4: this.popState(); return "acc_descr_value"; 
 break;
-case 5: this.popState(); return "acc_descr_value"; 
+case 5: this.begin("acc_descr_multiline");
 break;
-case 6: this.begin("acc_descr_multiline");
+case 6: this.popState(); 
 break;
-case 7: this.popState(); 
+case 7:return "acc_descr_multiline_value";
 break;
-case 8:return "acc_descr_multiline_value";
+case 8:return 33;
 break;
-case 9:return 33;
+case 9:return 34;
 break;
-case 10:return 34;
+case 10:return 35;
 break;
-case 11:return 35;
+case 11:return 36;
 break;
-case 12:return 36;
+case 12:return 10;
 break;
-case 13:return 10;
+case 13:/* skip whitespace */
 break;
-case 14:/* skip whitespace */
+case 14:return 8;
 break;
-case 15:return 8;
+case 15:return 50;
 break;
-case 16:return 50;
+case 16:return 70;
 break;
-case 17:return 70;
+case 17:return 4;
 break;
-case 18:return 4;
+case 18: this.begin("block"); return 17; 
 break;
-case 19: this.begin("block"); return 17; 
+case 19:return 49;
 break;
 case 20:return 49;
 break;
-case 21:return 49;
+case 21:return 42;
 break;
-case 22:return 42;
+case 22:return 15;
 break;
-case 23:return 15;
+case 23:return 13;
 break;
-case 24:return 13;
+case 24:/* skip whitespace in block */
 break;
-case 25:/* skip whitespace in block */
+case 25:return 59
 break;
-case 26:return 59
+case 26:return 56;
 break;
 case 27:return 56;
 break;
-case 28:return 56;
+case 28:return 60;
 break;
-case 29:return 60;
+case 29:/* nothing */
 break;
-case 30:/* nothing */
+case 30: this.popState(); return 19; 
 break;
-case 31: this.popState(); return 19; 
+case 31:return yy_.yytext[0];
 break;
-case 32:return yy_.yytext[0];
+case 32:return 20;
 break;
-case 33:return 20;
+case 33:return 21;
 break;
-case 34:return 21;
+case 34: this.begin("style"); return 44; 
 break;
-case 35: this.begin("style"); return 44; 
+case 35: this.popState(); return 10; 
 break;
-case 36: this.popState(); return 10; 
+case 36:/* skip whitespace in block */
 break;
-case 37:/* skip whitespace in block */
+case 37:return 13;
 break;
-case 38:return 13;
+case 38:return 42;
 break;
-case 39:return 42;
+case 39:return 49;
 break;
-case 40:return 49;
+case 40: this.begin("style"); return 37; 
 break;
-case 41: this.begin("style"); return 37; 
+case 41:return 43;
 break;
-case 42:return 43;
+case 42:return 63;
 break;
-case 43:return 63;
+case 43:return 65;
 break;
 case 44:return 65;
 break;
 case 45:return 65;
 break;
-case 46:return 65;
+case 46:return 63;
 break;
 case 47:return 63;
 break;
-case 48:return 63;
+case 48:return 64;
 break;
 case 49:return 64;
 break;
@@ -867,13 +867,13 @@ case 51:return 64;
 break;
 case 52:return 64;
 break;
-case 53:return 64;
+case 53:return 65;
 break;
-case 54:return 65;
+case 54:return 64;
 break;
-case 55:return 64;
+case 55:return 65;
 break;
-case 56:return 65;
+case 56:return 66;
 break;
 case 57:return 66;
 break;
@@ -881,44 +881,42 @@ case 58:return 66;
 break;
 case 59:return 66;
 break;
-case 60:return 66;
+case 60:return 63;
 break;
-case 61:return 63;
+case 61:return 64;
 break;
-case 62:return 64;
+case 62:return 65;
 break;
-case 63:return 65;
+case 63:return 67;
 break;
-case 64:return 67;
+case 64:return 68;
 break;
-case 65:return 68;
+case 65:return 69;
 break;
 case 66:return 69;
 break;
-case 67:return 69;
+case 67:return 68;
 break;
 case 68:return 68;
 break;
 case 69:return 68;
 break;
-case 70:return 68;
+case 70:return 41;
 break;
-case 71:return 41;
+case 71:return 47;
 break;
-case 72:return 47;
+case 72:return 40;
 break;
-case 73:return 40;
+case 73:return 48;
 break;
-case 74:return 48;
+case 74:return yy_.yytext[0];
 break;
-case 75:return yy_.yytext[0];
-break;
-case 76:return 6;
+case 75:return 6;
 break;
 }
 },
-rules: [/^(?:%%(?!\{)[^\n]*)/i,/^(?:%%\{[\s\S]*?\}%%[^\n]*)/i,/^(?:accTitle\s*:\s*)/i,/^(?:(?!\n||)*[^\n]*)/i,/^(?:accDescr\s*:\s*)/i,/^(?:(?!\n||)*[^\n]*)/i,/^(?:accDescr\s*\{\s*)/i,/^(?:[\}])/i,/^(?:[^\}]*)/i,/^(?:.*direction\s+TB[^\n]*)/i,/^(?:.*direction\s+BT[^\n]*)/i,/^(?:.*direction\s+RL[^\n]*)/i,/^(?:.*direction\s+LR[^\n]*)/i,/^(?:[\n]+)/i,/^(?:\s+)/i,/^(?:[\s]+)/i,/^(?:"[^"%\r\n\v\b\\]+")/i,/^(?:"[^"]*")/i,/^(?:erDiagram\b)/i,/^(?:\{)/i,/^(?:#)/i,/^(?:#)/i,/^(?:,)/i,/^(?::::)/i,/^(?::)/i,/^(?:\s+)/i,/^(?:\b((?:PK)|(?:FK)|(?:UK))\b)/i,/^(?:([^\s]*)[~].*[~]([^\s]*))/i,/^(?:([\*A-Za-z_\u00C0-\uFFFF][A-Za-z0-9\-\_\[\]\(\)\u00C0-\uFFFF\*]*))/i,/^(?:"[^"]*")/i,/^(?:[\n]+)/i,/^(?:\})/i,/^(?:.)/i,/^(?:\[)/i,/^(?:\])/i,/^(?:style\b)/i,/^(?:[\n]+)/i,/^(?:\s+)/i,/^(?::)/i,/^(?:,)/i,/^(?:#)/i,/^(?:classDef\b)/i,/^(?:class\b)/i,/^(?:one or zero\b)/i,/^(?:one or more\b)/i,/^(?:one or many\b)/i,/^(?:1\+)/i,/^(?:\|o\b)/i,/^(?:zero or one\b)/i,/^(?:zero or more\b)/i,/^(?:zero or many\b)/i,/^(?:0\+)/i,/^(?:\}o\b)/i,/^(?:many\(0\))/i,/^(?:many\(1\))/i,/^(?:many\b)/i,/^(?:\}\|)/i,/^(?:one\b)/i,/^(?:only one\b)/i,/^(?:1\b)/i,/^(?:\|\|)/i,/^(?:o\|)/i,/^(?:o\{)/i,/^(?:\|\{)/i,/^(?:\s*u\b)/i,/^(?:\.\.)/i,/^(?:--)/i,/^(?:to\b)/i,/^(?:optionally to\b)/i,/^(?:\.-)/i,/^(?:-\.)/i,/^(?:([^\x00-\x7F]|\w|-|\*)+)/i,/^(?:;)/i,/^(?:([^\x00-\x7F]|\w|-|\*)+)/i,/^(?:[0-9])/i,/^(?:.)/i,/^(?:$)/i],
-conditions: {"style":{"rules":[36,37,38,39,40,71,72],"inclusive":false},"acc_descr_multiline":{"rules":[7,8],"inclusive":false},"acc_descr":{"rules":[5],"inclusive":false},"acc_title":{"rules":[3],"inclusive":false},"block":{"rules":[25,26,27,28,29,30,31,32],"inclusive":false},"INITIAL":{"rules":[0,1,2,4,6,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,33,34,35,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,73,74,75,76],"inclusive":true}}
+rules: [/^(?:%%(?!\{)[^\n]*)/i,/^(?:accTitle\s*:\s*)/i,/^(?:(?!\n||)*[^\n]*)/i,/^(?:accDescr\s*:\s*)/i,/^(?:(?!\n||)*[^\n]*)/i,/^(?:accDescr\s*\{\s*)/i,/^(?:[\}])/i,/^(?:[^\}]*)/i,/^(?:.*direction\s+TB[^\n]*)/i,/^(?:.*direction\s+BT[^\n]*)/i,/^(?:.*direction\s+RL[^\n]*)/i,/^(?:.*direction\s+LR[^\n]*)/i,/^(?:[\n]+)/i,/^(?:\s+)/i,/^(?:[\s]+)/i,/^(?:"[^"%\r\n\v\b\\]+")/i,/^(?:"[^"]*")/i,/^(?:erDiagram\b)/i,/^(?:\{)/i,/^(?:#)/i,/^(?:#)/i,/^(?:,)/i,/^(?::::)/i,/^(?::)/i,/^(?:\s+)/i,/^(?:\b((?:PK)|(?:FK)|(?:UK))\b)/i,/^(?:([^\s]*)[~].*[~]([^\s]*))/i,/^(?:([\*A-Za-z_\u00C0-\uFFFF][A-Za-z0-9\-\_\[\]\(\)\u00C0-\uFFFF\*]*))/i,/^(?:"[^"]*")/i,/^(?:[\n]+)/i,/^(?:\})/i,/^(?:.)/i,/^(?:\[)/i,/^(?:\])/i,/^(?:style\b)/i,/^(?:[\n]+)/i,/^(?:\s+)/i,/^(?::)/i,/^(?:,)/i,/^(?:#)/i,/^(?:classDef\b)/i,/^(?:class\b)/i,/^(?:one or zero\b)/i,/^(?:one or more\b)/i,/^(?:one or many\b)/i,/^(?:1\+)/i,/^(?:\|o\b)/i,/^(?:zero or one\b)/i,/^(?:zero or more\b)/i,/^(?:zero or many\b)/i,/^(?:0\+)/i,/^(?:\}o\b)/i,/^(?:many\(0\))/i,/^(?:many\(1\))/i,/^(?:many\b)/i,/^(?:\}\|)/i,/^(?:one\b)/i,/^(?:only one\b)/i,/^(?:1\b)/i,/^(?:\|\|)/i,/^(?:o\|)/i,/^(?:o\{)/i,/^(?:\|\{)/i,/^(?:\s*u\b)/i,/^(?:\.\.)/i,/^(?:--)/i,/^(?:to\b)/i,/^(?:optionally to\b)/i,/^(?:\.-)/i,/^(?:-\.)/i,/^(?:([^\x00-\x7F]|\w|-|\*)+)/i,/^(?:;)/i,/^(?:([^\x00-\x7F]|\w|-|\*)+)/i,/^(?:[0-9])/i,/^(?:.)/i,/^(?:$)/i],
+conditions: {"style":{"rules":[35,36,37,38,39,70,71],"inclusive":false},"acc_descr_multiline":{"rules":[6,7],"inclusive":false},"acc_descr":{"rules":[4],"inclusive":false},"acc_title":{"rules":[2],"inclusive":false},"block":{"rules":[24,25,26,27,28,29,30,31],"inclusive":false},"INITIAL":{"rules":[0,1,3,5,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,32,33,34,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,72,73,74,75],"inclusive":true}}
 });
 return lexer;
 })();
