@@ -3,7 +3,7 @@
   "info": {
     "title": "Mermaid Validator API",
     "version": "1.4.0",
-    "description": "High-performance API and Model Context Protocol (MCP) server for validating Mermaid diagrams with comprehensive security features, multiple transport options, and enterprise-grade capabilities\n\n## Supported diagram types\n\nThis validator parses **vendored snapshots** of Mermaid's jison and langium grammars — it is NOT a live wrapper around the upstream `mermaid` npm package. The list of supported types changes when those grammar files are regenerated.\n\n**Call `GET /api/v1/capabilities` for the live, authoritative list** of types with working parsers. Currently ~32 types validate; a couple (`zenuml`, `exampleDiagram`) are declared keywords but have no parser — they return `valid: null, status: \"unsupported\"` rather than a misleading parse error.\n\n## Validation result semantics (tri-state)\n\nEvery per-diagram result has `valid: true | false | null` matched by a `status` string:\n- **`valid: true`,  `status: \"validated\"`**   — parser ran, content was clean\n- **`valid: false`, `status: \"invalid\"`**     — parser ran, content had syntax errors\n- **`valid: null`,  `status: \"unsupported\"`** — no parser available; we couldn't check\n\nCallers gating on `valid !== true` still get conservative \"don't ship\" behavior for both `false` and `null`. Summary fields (`validDiagrams`, `invalidDiagrams`, `unsupportedDiagrams`) count strict matches.\n\n## Caveats\n\n- `%%` line-comments are stripped before parsing (10 of 16 jison grammars lack the upstream skip-comment rule).\n- `%%{init: ...}%%` theme directives are preserved (not treated as comments).\n- Some recent upstream Mermaid features may not be reflected — grammars are vendored snapshots.\n- Parser runtimes: `jison ^0.4.18`, `langium ^4.2.4`.\n",
+    "description": "Validates Mermaid diagrams (~32 types) using vendored jison + langium grammars.\n\nLive list of supported types: `GET /api/v1/capabilities`\n\n### Result is tri-state\n\n| `valid` | `status` | meaning |\n|---|---|---|\n| `true` | `validated` | parsed, content OK |\n| `false` | `invalid` | parsed, content has errors |\n| `null` | `unsupported` | no parser — we could not check |\n\nGate on `valid !== true` to keep \"do not ship\" behavior for both `false` and `null`.\n\n### Endpoint stability\n\n- Validators (`/validate`, `/upload/file`, `/markdown/validate`, `/health/*`, `/stats`, `/capabilities`): stable.\n- Auto-fixers (`/markdown/fix`, `/upload/fix`): **BETA** — heuristic rewriter, review the diff before accepting.\n\n### Notes\n\n- `%%` line-comments are stripped before parsing.\n- `%%{init: ...}%%` theme directives are preserved.\n- Grammars are vendored snapshots, not a live wrapper around upstream `mermaid`.",
     "contact": {
       "name": "Gregorio Elias Roecker Momm",
       "email": "gregoriomomm@gmail.com"
@@ -440,8 +440,8 @@
         "tags": [
           "validation"
         ],
-        "summary": "Auto-fix Mermaid diagrams in an uploaded file",
-        "description": "Multipart-upload variant of POST /markdown/fix. Accepts a single .md / .mmd / .txt file, runs the auto-fixer over each Mermaid block, and returns the rewritten file content plus per-diagram statistics. Raw .mmd (no fences) is wrapped/unwrapped transparently.",
+        "summary": "[BETA] Auto-fix Mermaid diagrams in an uploaded file",
+        "description": "**BETA — heuristic auto-fixer.** Multipart-upload variant of POST /markdown/fix. Accepts a single .md / .mmd / .txt file, runs the auto-fixer over each Mermaid block, and returns the rewritten file content plus per-diagram statistics. Raw .mmd (no fences) is wrapped/unwrapped transparently.\n\nThe fixer applies pattern-based corrections (common arrow typos, missing keywords, malformed brackets). It is **not** a semantic rewriter — it can change diagrams in subtle ways and does NOT guarantee the fixed output matches your intent. Treat as a best-effort transform and review the diff before accepting.\n\nStability: experimental. The fix patterns and response shape may change between minor versions.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -674,8 +674,8 @@
         "tags": [
           "markdown"
         ],
-        "summary": "Auto-fix all Mermaid diagrams inside a markdown document",
-        "description": "Extracts every fenced ```mermaid block, attempts iterative auto-fix (up to 5 passes per diagram), and returns the rewritten markdown plus statistics.",
+        "summary": "[BETA] Auto-fix all Mermaid diagrams inside a markdown document",
+        "description": "**BETA — heuristic auto-fixer.** Extracts every fenced ```mermaid block, attempts iterative auto-fix (up to 5 passes per diagram), and returns the rewritten markdown plus statistics.\n\nThe fixer applies pattern-based corrections (common arrow typos, missing keywords, malformed brackets). It is **not** a semantic rewriter — it can change diagrams in subtle ways and does NOT guarantee the fixed output matches your intent. Treat as a best-effort transform and review the diff before accepting.\n\nStability: experimental. The fix patterns and response shape may change between minor versions.\n",
         "requestBody": {
           "required": true,
           "content": {

@@ -17,8 +17,13 @@ const fixer = require('../services/fixerInstance');
  * /markdown/fix:
  *   post:
  *     tags: [markdown]
- *     summary: Auto-fix all Mermaid diagrams inside a markdown document
- *     description: Extracts every fenced ```mermaid block, attempts iterative auto-fix (up to 5 passes per diagram), and returns the rewritten markdown plus statistics.
+ *     summary: "[BETA] Auto-fix all Mermaid diagrams inside a markdown document"
+ *     description: |
+ *       **BETA — heuristic auto-fixer.** Extracts every fenced ```mermaid block, attempts iterative auto-fix (up to 5 passes per diagram), and returns the rewritten markdown plus statistics.
+ *
+ *       The fixer applies pattern-based corrections (common arrow typos, missing keywords, malformed brackets). It is **not** a semantic rewriter — it can change diagrams in subtle ways and does NOT guarantee the fixed output matches your intent. Treat as a best-effort transform and review the diff before accepting.
+ *
+ *       Stability: experimental. The fix patterns and response shape may change between minor versions.
  *     requestBody:
  *       required: true
  *       content:

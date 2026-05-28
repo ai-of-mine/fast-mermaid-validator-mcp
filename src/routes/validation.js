@@ -409,8 +409,13 @@ router.post(
  * /upload/fix:
  *   post:
  *     tags: [validation]
- *     summary: Auto-fix Mermaid diagrams in an uploaded file
- *     description: Multipart-upload variant of POST /markdown/fix. Accepts a single .md / .mmd / .txt file, runs the auto-fixer over each Mermaid block, and returns the rewritten file content plus per-diagram statistics. Raw .mmd (no fences) is wrapped/unwrapped transparently.
+ *     summary: "[BETA] Auto-fix Mermaid diagrams in an uploaded file"
+ *     description: |
+ *       **BETA — heuristic auto-fixer.** Multipart-upload variant of POST /markdown/fix. Accepts a single .md / .mmd / .txt file, runs the auto-fixer over each Mermaid block, and returns the rewritten file content plus per-diagram statistics. Raw .mmd (no fences) is wrapped/unwrapped transparently.
+ *
+ *       The fixer applies pattern-based corrections (common arrow typos, missing keywords, malformed brackets). It is **not** a semantic rewriter — it can change diagrams in subtle ways and does NOT guarantee the fixed output matches your intent. Treat as a best-effort transform and review the diff before accepting.
+ *
+ *       Stability: experimental. The fix patterns and response shape may change between minor versions.
  *     requestBody:
  *       required: true
  *       content:

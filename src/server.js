@@ -134,31 +134,33 @@ class Server {
 
       const pkg = require('../package.json');
       // Keep this description block in sync with scripts/generate-openapi.js.
+      // Kept short on purpose: the Swagger UI renders a wall-of-text poorly;
+      // detail belongs in README/repo docs, not the spec landing page.
       const apiDescription = [
-        pkg.description,
+        'Validates Mermaid diagrams (~32 types) using vendored jison + langium grammars.',
         '',
-        '## Supported diagram types',
+        'Live list of supported types: `GET /api/v1/capabilities`',
         '',
-        'This validator parses **vendored snapshots** of Mermaid\'s jison and langium grammars — it is NOT a live wrapper around the upstream `mermaid` npm package. The list of supported types changes when those grammar files are regenerated.',
+        '### Result is tri-state',
         '',
-        '**Call `GET /api/v1/capabilities` for the live, authoritative list** of types with working parsers. Currently ~32 types validate; a couple (`zenuml`, `exampleDiagram`) are declared keywords but have no parser — they return `valid: null, status: "unsupported"` rather than a misleading parse error.',
+        '| `valid` | `status` | meaning |',
+        '|---|---|---|',
+        '| `true` | `validated` | parsed, content OK |',
+        '| `false` | `invalid` | parsed, content has errors |',
+        '| `null` | `unsupported` | no parser — we could not check |',
         '',
-        '## Validation result semantics (tri-state)',
+        'Gate on `valid !== true` to keep "do not ship" behavior for both `false` and `null`.',
         '',
-        'Every per-diagram result has `valid: true | false | null` matched by a `status` string:',
-        '- **`valid: true`,  `status: "validated"`**   — parser ran, content was clean',
-        '- **`valid: false`, `status: "invalid"`**     — parser ran, content had syntax errors',
-        '- **`valid: null`,  `status: "unsupported"`** — no parser available; we couldn\'t check',
+        '### Endpoint stability',
         '',
-        'Callers gating on `valid !== true` still get conservative "don\'t ship" behavior for both `false` and `null`. Summary fields (`validDiagrams`, `invalidDiagrams`, `unsupportedDiagrams`) count strict matches.',
+        '- Validators (`/validate`, `/upload/file`, `/markdown/validate`, `/health/*`, `/stats`, `/capabilities`): stable.',
+        '- Auto-fixers (`/markdown/fix`, `/upload/fix`): **BETA** — heuristic rewriter, review the diff before accepting.',
         '',
-        '## Caveats',
+        '### Notes',
         '',
-        '- `%%` line-comments are stripped before parsing (10 of 16 jison grammars lack the upstream skip-comment rule).',
-        '- `%%{init: ...}%%` theme directives are preserved (not treated as comments).',
-        '- Some recent upstream Mermaid features may not be reflected — grammars are vendored snapshots.',
-        '- Parser runtimes: `jison ^0.4.18`, `langium ^4.2.4`.',
-        ''
+        '- `%%` line-comments are stripped before parsing.',
+        '- `%%{init: ...}%%` theme directives are preserved.',
+        '- Grammars are vendored snapshots, not a live wrapper around upstream `mermaid`.'
       ].join('\n');
 
       const options = {
