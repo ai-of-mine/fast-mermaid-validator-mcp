@@ -72,7 +72,15 @@ def _post_multipart(url: str, file_path: str, field_name: str = "file") -> dict:
     boundary = "----mermaid-validator-" + uuid.uuid4().hex
     with open(file_path, "rb") as fh:
         body_bytes = fh.read()
-    mime = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
+    # macOS's mimetypes maps .mmd to `application/vnd.chipnuts.karaoke-mmd`
+    # (a registered IANA type that has nothing to do with mermaid), which the
+    # server's fileUploadSecurity middleware rejects. .md sometimes guesses
+    # `text/markdown` and sometimes does not. Force text/markdown for either
+    # markdown or raw-mermaid files; mimetypes.guess_type() is too fragile.
+    if file_path.endswith((".md", ".markdown", ".mmd")):
+        mime = "text/markdown"
+    else:
+        mime = mimetypes.guess_type(file_path)[0] or "text/plain"
     file_name = os.path.basename(file_path)
 
     body = (
