@@ -132,6 +132,7 @@ docker-compose*
 README.md
 CHANGELOG.md
 docs/
+!docs/openapi.json
 examples/
 
 # Testing
