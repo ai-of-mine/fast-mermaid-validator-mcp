@@ -161,7 +161,8 @@ class CustomMermaidValidator {
       'block': 'block-beta',
       // v11 additions
       'ishikawa': 'ishikawa',
-      'venn': 'venn'
+      'venn': 'venn',
+      'venn-beta': 'venn'
     };
 
     // Check for explicit type declaration

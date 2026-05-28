@@ -23,10 +23,15 @@ function createFlowDb() {
   const noop = () => {};
   const noopRet = (v) => () => v;
 
-  // upstream "lex" object has `firstGraph()` invoked from parser to detect
-  // graph/flowchart on the first line — return null so the lexer just sees
-  // it as data.
-  const lex = { firstGraph: () => null, rules: [], conditions: {} };
+  // upstream "lex" object: firstGraph() must return TRUE on the first
+  // `flowchart`/`graph` token so the lexer enters the `dir` state to parse
+  // the direction (TD/LR/etc). Returns false on subsequent calls (e.g.,
+  // a subgraph using `graph TD` inside the outer flowchart).
+  let _firstGraph = true;
+  const lex = {
+    firstGraph: () => { const was = _firstGraph; _firstGraph = false; return was; },
+    rules: [], conditions: {}
+  };
 
   const addVertex = (id, textOrObj, type, style, classes_, dir, props, metadata) => {
     const node = vertices.get(id) || {
@@ -65,6 +70,16 @@ function createFlowDb() {
       }
     },
     addSingleLink(start, end, type) { edges.push({ start, end, type }); },
+    // destructLink: upstream's parser uses this to turn a raw link token
+    // (e.g., "-->|label|") into a structured {type, stroke, length, text}
+    // descriptor. We don't need the full descriptor for validation — return
+    // a stable shape so the parser is satisfied.
+    destructLink(_link, _previousLink) {
+      void _link; void _previousLink;
+      return { type: 'arrow_point', stroke: 'normal', length: 1, text: '' };
+    },
+    destructEndLink(_link) { void _link; return { type: 'arrow_point', stroke: 'normal', length: 1 }; },
+    destructStartLink(_link) { void _link; return { type: 'arrow_point', stroke: 'normal', length: 1 }; },
     updateLink(positions, style)  { void positions; void style; },
     updateLinkInterpolate(positions, interp) { void positions; void interp; },
     addClass(ids, style) {

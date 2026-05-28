@@ -27,6 +27,9 @@ function createKanbanDb() {
     return last;
   };
 
+  const noop = () => {};
+  const logger = { trace: noop, debug: noop, info: noop, warn: noop, error: noop };
+
   return {
     clear() { nodes = []; sections = []; cnt = 0; common.clear(); },
     addNode(level, id, descr, type = 'kanbanItem', shape = 'kanbanItem') {
@@ -37,6 +40,7 @@ function createKanbanDb() {
     },
     getSections() { return sections; },
     getData() { return { nodes, edges: [] }; },
+    getLogger() { return logger; },
     setAccTitle:       (t) => common.setAccTitle(t),
     getAccTitle:       () => common.getAccTitle(),
     setAccDescription: (t) => common.setAccDescription(t),
