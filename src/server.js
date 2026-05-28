@@ -129,9 +129,50 @@ class Server {
    */
   setupSwaggerDocs() {
     try {
-      const swaggerJsdoc = require('swagger-jsdoc');
       const swaggerUi = require('swagger-ui-express');
+      const fs = require('fs');
+      const path = require('path');
 
+      // Strategy: load the pre-generated docs/openapi.json that ships in the
+      // package tarball. This avoids pulling swagger-jsdoc (and its
+      // glob@11.x transitive dep, which trips a deprecation warning for
+      // consumers) into the runtime dependency closure. swagger-jsdoc is
+      // kept only in devDependencies — used by `npm run docs:openapi` to
+      // regenerate the spec when routes change.
+      const specPath = path.join(__dirname, '..', 'docs', 'openapi.json');
+      let specs;
+      if (fs.existsSync(specPath)) {
+        specs = JSON.parse(fs.readFileSync(specPath, 'utf8'));
+        // Make the dev-server URL accurate for the running process even when
+        // the static file was generated with a different default port.
+        if (Array.isArray(specs.servers) && specs.servers.length > 0) {
+          specs.servers[0] = { url: `http://localhost:${config.server.port}/api/v1`, description: 'Local development server' };
+        }
+      } else {
+        // Fallback: regenerate the spec at boot via swagger-jsdoc if available
+        // (dev environments where docs/openapi.json was never built). Wrapped
+        // so a missing devDep doesn't crash the server in production.
+        logger.warn('docs/openapi.json missing — falling back to swagger-jsdoc (devDep) at runtime');
+        const swaggerJsdoc = require('swagger-jsdoc');
+        const built = this._buildSwaggerSpec(swaggerJsdoc);
+        specs = built;
+      }
+
+      this.app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
+      logger.info('Swagger documentation available at /docs', {
+        version: specs.info && specs.info.version,
+        pathCount: Object.keys(specs.paths || {}).length,
+        source: fs.existsSync(specPath) ? 'docs/openapi.json (static)' : 'swagger-jsdoc (runtime)'
+      });
+    } catch (error) {
+      logger.logError(error, { context: 'swagger_setup' });
+    }
+  }
+
+  // Internal: assembles the swagger-jsdoc options object. Only used in the
+  // devDep fallback path; the same logic lives in scripts/generate-openapi.js
+  // for static-file generation.
+  _buildSwaggerSpec(swaggerJsdoc) {
       const pkg = require('../package.json');
       // Keep this description block in sync with scripts/generate-openapi.js.
       // Kept short on purpose: the Swagger UI renders a wall-of-text poorly;
@@ -244,13 +285,7 @@ class Server {
         apis: ['./src/routes/*.js']
       };
 
-      const specs = swaggerJsdoc(options);
-      this.app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
-      
-      logger.info('Swagger documentation available at /docs');
-    } catch (error) {
-      logger.logError(error, { context: 'swagger_setup' });
-    }
+      return swaggerJsdoc(options);
   }
 
   /**

@@ -1,6 +1,6 @@
 {
   "name": "@ai-of-mine/fast-mermaid-validator-mcp",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "High-performance API and Model Context Protocol (MCP) server for validating Mermaid diagrams with comprehensive security features, multiple transport options, and enterprise-grade capabilities",
   "main": "src/server.js",
   "bin": "src/server.js",
@@ -41,6 +41,7 @@
     "docker:build": "docker build -t mermaid-validator-mcp .",
     "docker:run": "docker run -p 8000:8000 mermaid-validator-mcp",
     "docs": "swagger-jsdoc -d docs/swagger.js src/routes/*.js -o docs/swagger.json",
+    "docs:openapi": "node scripts/generate-openapi.js",
     "audit": "npm audit",
     "audit:fix": "npm audit fix",
     "audit:ci": "audit-ci --config audit-ci.json",
@@ -71,9 +72,11 @@
     "src/utils/",
     "src/mcp/",
     "dist/mcp/",
+    "docs/openapi.json",
     "README.md",
     "LICENSE",
     "NOTICE",
+    "CHANGELOG.md",
     "GETTING_STARTED.md",
     "package.json"
   ],
@@ -144,7 +147,6 @@
     "mime-types": "^3.0.2",
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
-    "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^14.0.0",
     "winston": "^3.19.0",
@@ -172,6 +174,7 @@
     "langium-cli": "^4.2.1",
     "nodemon": "^3.1.14",
     "supertest": "^7.2.2",
+    "swagger-jsdoc": "^6.3.0",
     "typescript": "~5.9.3"
   }
 }
