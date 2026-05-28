@@ -4,6 +4,20 @@ All notable changes to `@ai-of-mine/fast-mermaid-validator-mcp` are documented i
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] — 2026-05-28
+
+### Fixed (v11 grammar coverage: 15/18 → 18/18)
+
+- **`flowchart` v11**: `yy.lex.firstGraph()` returned `null` (falsy) so the lexer never entered the `dir` state to parse direction tokens like `TD` / `LR`. Fix: return `true` on first call (then `false` for nested subgraphs).
+- **`flowchart` v11**: missing `yy.destructLink()` (and `destructEndLink` / `destructStartLink`) needed by the parser to interpret link tokens. Added stubs returning a stable `{type, stroke, length, text}` descriptor.
+- **`kanban` v11**: missing `yy.getLogger()`. Added.
+- **`venn-beta` v11 (new in v1.5.0)**: not a code bug — the grammar requires the literal keyword `venn-beta` (not bare `venn`). Added `'venn-beta': 'venn'` alias in `detectDiagramType` so both forms route to the venn parser.
+
+### Coverage
+
+- v11: **18 of 18** grammars now validate the same v10-shaped sample inputs.
+- v10 default path: **41/41** v1.4.0-bugfixes regression unchanged, **150/150** full-coverage regression unchanged.
+
 ## [1.5.0] — 2026-05-28
 
 > **v1.4.2 remains the LTS line** (dist-tag `lts` on npm; `gregoriomomm/fast-mermaid-validator-mcp:lts` on Docker Hub). v1.5.0 is the development line; the `mermaidVersion: '11'` option is **experimental** and behavior may shift in 1.5.x patches.
